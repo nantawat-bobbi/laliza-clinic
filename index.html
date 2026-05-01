@@ -3202,8 +3202,10 @@ function updateNavForBranch(){
 }
 
 // ══ INIT ══
-// แสดงหน้า login ก่อนเลย ไม่รอ Firebase
-buildLoginGrid();
+// รอ DOM โหลดเสร็จก่อน
+window.addEventListener('DOMContentLoaded', function(){
+  buildLoginGrid();
+});
 
 // เช็ค session ก่อนเลย เพื่อแสดง loading แทน login screen
 const _savedSession = localStorage.getItem('laliza_session');
