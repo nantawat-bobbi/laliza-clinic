@@ -2479,40 +2479,75 @@ document.getElementById('uploadArea').addEventListener('drop',e=>{
 // ══════════════════════════════════════════
 
 // บันทึกข้อมูลสาขาทั้งหมดขึ้น Firebase
-let _isSaving = false;
-
-function saveToFirebase(){
+function saveToFirebase(callback){
   const data = {};
   BRANCHES.forEach(b=>{
+    // emps: แปลงเป็น Array เสมอ กรอง null ออก
+    const emps = (Array.isArray(b.emps) ? b.emps : Object.values(b.emps||{})).filter(e=>e&&e.name);
+    
+    // leaves: เก็บเป็น Object {empIndex: {dayIndex: leaveData}}
+    const rawLeaves = b.leaves||{};
+    const cleanLeaves = {};
+    Object.keys(rawLeaves).forEach(ei=>{
+      const empLeave = rawLeaves[ei];
+      if(!empLeave || typeof empLeave !== 'object') return;
+      const cleanDays = {};
+      Object.keys(empLeave).forEach(di=>{
+        if(empLeave[di]) cleanDays[di] = empLeave[di];
+      });
+      if(Object.keys(cleanDays).length > 0){
+        cleanLeaves[ei] = cleanDays;
+      }
+    });
+
     data[b.id] = {
-      id: b.id,
-      name: b.name,
-      code: b.code,
-      color: b.color,
-      password: b.password,
-      staffPassword: b.staffPassword || '',
-      emps: b.emps || [],
-      leaves: b.leaves || {}
+      id: b.id, name: b.name, code: b.code, color: b.color,
+      password: b.password, staffPassword: b.staffPassword||'',
+      emps, leaves: cleanLeaves
     };
   });
-  _isSaving = true;
+
   db.ref('branches').set(data)
     .then(()=>{
-      showSaveIndicator('✅ บันทึกแล้ว');
-      setTimeout(()=>{ _isSaving = false; }, 2000);
+      // โหลดกลับจาก Firebase ทันทีเพื่อยืนยัน
+      return db.ref('branches').once('value');
     })
-    .catch(e=>{
-      showSaveIndicator('❌ บันทึกไม่สำเร็จ');
-      _isSaving = false;
-    });
+    .then(snap=>{
+      const raw = snap.val();
+      const fresh = parseFirebaseBranches(raw);
+      if(fresh && fresh.length > 0){
+        BRANCHES = fresh;
+      }
+      showSaveIndicator('✅ บันทึกแล้ว');
+      if(session.branchId) render();
+      if(typeof currentTab !== 'undefined'){
+        if(currentTab==='overview') renderOverview();
+        if(currentTab==='dashboard') renderDashboard();
+        if(currentTab==='stats') renderStats();
+      }
+      if(callback) callback();
+    })
+    .catch(e=>{ console.error(e); showSaveIndicator('❌ บันทึกไม่สำเร็จ'); });
 }
 
 // โหลดข้อมูลจาก Firebase ครั้งเดียวตอน login
 function parseFirebaseBranches(data){
   if(!data) return null;
-  // รองรับทั้ง Array และ Object จาก Firebase
+  // Firebase เก็บเป็น Object {b1:{...}, b2:{...}} ใช้ id เป็น key
+  if(typeof data === 'object' && !Array.isArray(data)){
+    // เรียงตามลำดับ BRANCHES เดิม
+    const branchOrder = ['b7','b8','b3','b4','b5','b6','b1','b2','b9','b10'];
+    const result = [];
+    branchOrder.forEach(id=>{
+      if(data[id]) result.push(data[id]);
+    });
+    // ถ้ามี branch อื่นที่ไม่อยู่ใน order
+    Object.keys(data).forEach(k=>{
+      if(!branchOrder.includes(k) && data[k]) result.push(data[k]);
+    });
+    return result.length > 0 ? result : null;
+  }
   if(Array.isArray(data)) return data.filter(x=>x);
-  if(typeof data === 'object') return Object.values(data).filter(x=>x);
   return null;
 }
 
@@ -2540,28 +2575,10 @@ function loadFromFirebase(callback){
 
 // Real-time listener — ซิงค์อัตโนมัติเมื่อมีการเปลี่ยนแปลงจากเครื่องอื่น
 function startRealtimeSync(){
-  db.ref('branches').on('value', snap=>{
-    if(_isSaving) return; // ไม่ overwrite ขณะกำลัง save
-    const raw = snap.val();
-    const data = parseFirebaseBranches(raw);
-    if(data && data.length > 0){
-      BRANCHES = data;
-      buildLoginGrid();
-      if(session.branchId){
-        render();
-        if(typeof currentTab !== 'undefined'){
-          if(currentTab==='overview') renderOverview();
-          if(currentTab==='dashboard') renderDashboard();
-          if(currentTab==='stats') renderStats();
-        }
-        const b = BRANCHES.find(x=>x.id===session.branchId);
-        if(b){
-          document.getElementById('sidebarBranchText').textContent = b.name;
-          document.getElementById('branchNameText').textContent = b.name;
-        }
-      }
-    }
-  });
+  // ไม่ใช้ realtime sync (.on) เพราะทำให้ data ถูก overwrite
+  // โหลดข้อมูลครั้งเดียวตอน login แล้วเก็บไว้ใน memory
+  // การ sync จะเกิดขึ้นเฉพาะตอน refresh หน้าใหม่เท่านั้น
+  console.log('App ready - data loaded from Firebase');
 }
 
 // แสดง indicator ว่าบันทึกแล้ว
@@ -2704,17 +2721,20 @@ const _origSaveLeave = saveLeave;
 saveLeave = function(){
   if(!lms.sel) return closeLeaveModal();
   const b = BRANCHES.find(x=>x.id===lms.bid);
+  if(!b.leaves) b.leaves = {};
   if(!b.leaves[lms.ei]) b.leaves[lms.ei]={};
   b.leaves[lms.ei][lms.di] = {code:lms.sel, note:document.getElementById('lNote').value.trim()};
-  render(); closeLeaveModal();
+  closeLeaveModal();
+  render();
   saveToFirebase();
 };
 
 const _origDelLeave = delLeave;
 delLeave = function(){
   const b = BRANCHES.find(x=>x.id===lms.bid);
-  if(b.leaves[lms.ei]) delete b.leaves[lms.ei][lms.di];
-  render(); closeLeaveModal();
+  if(b && b.leaves && b.leaves[lms.ei]) delete b.leaves[lms.ei][lms.di];
+  closeLeaveModal();
+  render();
   saveToFirebase();
 };
 
@@ -2855,32 +2875,47 @@ function updateNavForBranch(){
 }
 
 // ══ INIT ══
+// เช็ค session ก่อนเลย เพื่อแสดง loading แทน login screen
+const _savedSession = localStorage.getItem('laliza_session');
+let _autoLogin = false;
+if(_savedSession){
+  try{
+    const _s = JSON.parse(_savedSession);
+    const SESSION_LIMIT = 3 * 60 * 60 * 1000;
+    const _expired = !_s.loginAt || (Date.now() - _s.loginAt) > SESSION_LIMIT;
+    if(!_expired && _s.branchId){
+      _autoLogin = true;
+      session = { branchId: _s.branchId, isManager: _s.isManager };
+      showLoadingOverlay(true); // แสดง loading ทันที ไม่ให้เห็น login
+    } else {
+      localStorage.removeItem('laliza_session');
+    }
+  } catch(e){}
+}
+
 loadFromFirebase(()=>{
   startRealtimeSync();
-  // เช็ค session เก่าจาก localStorage
-  const saved = localStorage.getItem('laliza_session');
-  if(saved){
-    try{
-      const s = JSON.parse(saved);
-      const b = BRANCHES.find(x=>x.id===s.branchId);
-      const SESSION_LIMIT = 3 * 60 * 60 * 1000; // 3 ชั่วโมง
-      const expired = !s.loginAt || (Date.now() - s.loginAt) > SESSION_LIMIT;
-      if(b && !expired){
-        session = { branchId: s.branchId, isManager: s.isManager };
-        startApp();
-        return;
-      } else {
-        // หมดเวลา → ล้าง session
-        localStorage.removeItem('laliza_session');
-      }
-    } catch(e){}
+
+  if(_autoLogin){
+    // ตรวจสอบว่า branch ยังอยู่ใน Firebase
+    const b = BRANCHES.find(x=>x.id===session.branchId);
+    if(b){
+      showLoadingOverlay(false);
+      startApp();
+    } else {
+      // branch ไม่พบ → logout
+      localStorage.removeItem('laliza_session');
+      showLoadingOverlay(false);
+      buildLoginGrid();
+    }
+  } else {
+    buildLoginGrid();
   }
-  buildLoginGrid();
-  
+
   // ตรวจสอบ session timeout ทุก 1 นาที
   setInterval(()=>{
     const sv = localStorage.getItem('laliza_session');
-    if(!sv) return;
+    if(!sv || !session.branchId) return;
     try{
       const s = JSON.parse(sv);
       const SESSION_LIMIT = 3 * 60 * 60 * 1000;
