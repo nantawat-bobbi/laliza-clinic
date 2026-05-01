@@ -616,79 +616,72 @@ td.ic .ilast{font-size:11px;color:var(--green);}
 
 /* มือถือ (< 768px) */
 @media (max-width: 768px) {
-  /* ── Layout ── */
+  /* ── ซ่อน sidebar บนมือถือ ── */
   .sidebar { display: none !important; }
-  
+
+  /* ── App layout บนมือถือ ── */
   .app.visible {
+    display: block !important;
     height: auto !important;
-    min-height: 100dvh;
-    overflow: visible !important;
-    flex-direction: column;
+    min-height: 100vh;
+    overflow-x: hidden;
   }
-  
+
   .main {
-    width: 100%;
-    flex: 1;
-    height: auto;
-    overflow: visible;
+    display: block !important;
+    width: 100% !important;
+    overflow-x: hidden;
   }
 
-  .topbar { position: sticky; top: 0; z-index: 50; }
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    padding: 10px 14px;
+  }
 
+  /* ── Page content ── */
   .page-content {
+    display: block !important;
     height: auto !important;
+    min-height: auto !important;
     overflow: visible !important;
     padding-bottom: 80px !important;
-    flex: none !important;
   }
 
   /* ── Login ── */
   .login-box { padding: 28px 20px; border-radius: 16px; }
-  .login-logo h1 { font-size: 22px; }
   .branch-select-grid { grid-template-columns: 1fr; }
-
-  /* ── Topbar ── */
-  .topbar { padding: 10px 14px; }
   .branch-name-text { font-size: 14px; }
   .topbar-sub { font-size: 10px; }
 
-  /* ── Overview cards ── */
+  /* ── Overview ── */
   .overview-grid { grid-template-columns: repeat(3,1fr); gap: 10px; padding: 0 14px; margin-top: -16px; }
   .overview-card { padding: 14px 10px; border-radius: 12px; }
   .overview-icon { font-size: 22px; }
   .overview-value { font-size: 24px; }
   .overview-label { font-size: 9px; }
   .overview-sub { font-size: 9px; }
-
-  /* ── Overview hero ── */
   .overview-hero { padding: 20px 14px 28px; }
   .overview-hero h2 { font-size: 17px; }
+  .overview-body { padding: 0 14px 18px; grid-template-columns: 1fr; gap: 12px; }
+  .ov-section-body { padding: 12px 14px; }
+  .chart-row { flex-wrap: wrap; gap: 6px; }
+  .chart-bar-wrap { flex: 1 1 100%; }
 
   /* ── Leave type summary ── */
   .leave-type-summary { padding: 14px 14px 18px; }
   .lts-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   .lts-card { padding: 10px; }
-  .lts-count { font-size: 20px; }
 
   /* ── Bottom5 ── */
   .bottom5-section { padding: 0 14px 18px; }
   .bottom5-body { grid-template-columns: 1fr; }
   .donut-wrap { padding: 12px; }
   .donut-svg { width: 110px; height: 110px; }
-  .b5-row { padding: 8px 10px; }
-
-  /* ── Overview body ── */
-  .overview-body { padding: 0 14px 18px; grid-template-columns: 1fr; gap: 12px; }
-  .ov-section-body { padding: 12px 14px; }
-  .chart-row { flex-wrap: wrap; gap: 6px; }
-  .chart-info { min-width: 120px; }
-  .chart-bar-wrap { flex: 1 1 100%; }
 
   /* ── Branch summary ── */
   .branch-sum-card { flex-wrap: wrap; }
-  .branch-sum-stats { flex-shrink: 0; }
-
-  /* ── Global rank ── */
   .global-rank-section { padding: 0 14px 18px; }
   .global-rank-scroll { max-height: 320px; }
   .global-rank-table th:nth-child(3),
@@ -702,7 +695,6 @@ td.ic .ilast{font-size:11px;color:var(--green);}
   .stats-container { padding: 12px 14px; }
   .stats-emp-row { grid-template-columns: 1fr; gap: 8px; }
   .stats-total-badge { margin-top: 4px; }
-  .stats-types-row { gap: 5px; }
 
   /* ── Dashboard ── */
   .dash-hero { padding: 18px 14px; }
@@ -716,18 +708,16 @@ td.ic .ilast{font-size:11px;color:var(--green);}
   .content { padding: 10px 14px; }
   .stats-row { padding: 8px 14px; gap: 8px; }
   .stat-card { min-width: 90px; padding: 7px 10px; }
-  .sval { font-size: 18px; }
 
   /* ── Modals ── */
   .modal, .modal.wide { width: calc(100vw - 32px); max-width: none; }
 
-  /* ── Bottom Navigation (มือถือ) ── */
   .bottom-nav { display: flex; }
 }
 
 /* ── Bottom Nav Bar สำหรับมือถือ ── */
 .bottom-nav {
-  display: none; /* ซ่อนไว้ก่อน จะแสดงหลัง login */
+  display: none !important; /* ซ่อนบน desktop เสมอ */
   position: fixed;
   bottom: 0; left: 0; right: 0;
   background: #1e1b4b;
@@ -754,6 +744,10 @@ td.ic .ilast{font-size:11px;color:var(--green);}
 .bottom-nav-item .bn-icon { font-size: 20px; }
 .bottom-nav-item.active { color: #fff; }
 .bottom-nav-item.active .bn-icon { filter: drop-shadow(0 0 4px rgba(255,255,255,0.5)); }
+
+@media (max-width: 768px) {
+  .bottom-nav { display: none; } /* จะแสดงเมื่อ login แล้วผ่าน JS */
+}
 
 /* เพิ่ม padding ด้านล่างให้ content ไม่โดน bottom nav บัง */
 
@@ -1167,12 +1161,12 @@ const mayDays=DAYS.filter(d=>d.month===5);
 let BRANCHES=[
   // 1. พระราม9
   {
-    id:'b7',name:'สาขา-เซ็นทรัลพระราม 9',code:'PR9',color:'#ffb74d',password:'847291',
+    id:'b7',name:'สาขา-เซ็นทรัลพระราม 9',code:'PR9',color:'#ffb74d',password:'847291',staffPassword:'8472',
     emps:[],leaves:{}
   },
   // 2. ปิ่นเกล้า
   {
-    id:'b8',name:'สาขา-เซ็นทรัลปิ่นเกล้า',code:'PKL',color:'#4dd0e1',password:'362058',
+    id:'b8',name:'สาขา-เซ็นทรัลปิ่นเกล้า',code:'PKL',color:'#4dd0e1',password:'362058',staffPassword:'3620',
     emps:[
       {name:'ปุญศิตา ลงกลาง',nick:'(แอน)',pos:'Branch Manager',phone:'0626953958',last:'16/03/69'},
       {name:'พิมพ์พิศา วาติ',nick:'(แพรว)',pos:'BC',phone:'0645069769',last:'25/03/69'},
@@ -1204,7 +1198,7 @@ let BRANCHES=[
   },
   // 3. บางแค
   {
-    id:'b3',name:'สาขา-ซีคอนบางแค',code:'CTL',color:'#80cbc4',password:'519374',
+    id:'b3',name:'สาขา-ซีคอนบางแค',code:'CTL',color:'#80cbc4',password:'519374',staffPassword:'5193',
     emps:[
       {name:'ลลิตา ท่าทราย',nick:'(ทราย)',pos:'Branch Manager',phone:'066-1092873',last:'15-ม.ค.'},
       {name:'ชลธิชา ดวงจันทร์ใชดี',nick:'(หญิง)',pos:'BC',phone:'093-4678182',last:'22-ม.ค.'},
@@ -1221,7 +1215,7 @@ let BRANCHES=[
   },
   // 4. รังสิต
   {
-    id:'b4',name:'สาขา-ฟิวเจอร์พาร์ครังสิต',code:'CHT',color:'#ef9a9a',password:'728163',
+    id:'b4',name:'สาขา-ฟิวเจอร์พาร์ครังสิต',code:'CHT',color:'#ef9a9a',password:'728163',staffPassword:'7281',
     emps:[
       {name:'ธิดารัตน์ เนื้อทอง',nick:'(ปุ๋ย)',pos:'Manager',phone:'0638924599',last:'-'},
       {name:'ฐิติพร พนาบัณฑิต',nick:'(ส้มส้ม)',pos:'BC',phone:'0958409944',last:'-'},
@@ -1239,7 +1233,7 @@ let BRANCHES=[
   },
   // 5. พรอมานาด
   {
-    id:'b5',name:'สาขา-เดอะพรอมานาด',code:'PHW',color:'#ce93d8',password:'945612',
+    id:'b5',name:'สาขา-เดอะพรอมานาด',code:'PHW',color:'#ce93d8',password:'945612',staffPassword:'9456',
     emps:[
       {name:'ภาวดี ทับจันทร์',nick:'(นุ่น)',pos:'Manager',phone:'0944128964',last:'22'},
       {name:'อมคัน์นา แทนกา',nick:'(แก้)',pos:'BC',phone:'09531012228',last:'17'},
@@ -1256,7 +1250,7 @@ let BRANCHES=[
   },
   // 6. งามวงศ์วาน
   {
-    id:'b6',name:'สาขา-เดอะมอลล์งามวงศ์วาน',code:'KSR',color:'#a5d6a7',password:'183749',
+    id:'b6',name:'สาขา-เดอะมอลล์งามวงศ์วาน',code:'KSR',color:'#a5d6a7',password:'183749',staffPassword:'1837',
     emps:[
       {name:'เกศราภรณ์ กาจะภักดี',nick:'(เมย์)',pos:'Branch Manager',phone:'0971359669',last:'25'},
       {name:'ทัศนีย์ พรหมนิล',nick:'(กระแด)',pos:'BC',phone:'0834982687',last:'22'},
@@ -1274,7 +1268,7 @@ let BRANCHES=[
   },
   // 7. ศรีนครินทร์
   {
-    id:'b1',name:'สาขา-ซีคอนศรีนครินทร์',code:'BR1',color:'#ff8a65',password:'637482',
+    id:'b1',name:'สาขา-ซีคอนศรีนครินทร์',code:'BR1',color:'#ff8a65',password:'637482',staffPassword:'6374',
     emps:[
       {name:'กมลชนก สร้อยสลับ',nick:'(เก๋)',pos:'ผู้จัดการ',phone:'061-602-2556',last:'21-เม.ย.'},
       {name:'นันทนัท รักทอง',nick:'(บีม)',pos:'BC',phone:'0996399323',last:'22-เม.ย.'},
@@ -1291,7 +1285,7 @@ let BRANCHES=[
   },
   // 8. เวสต์เกต
   {
-    id:'b2',name:'สาขา-เซ็นทรัลเวสเกต',code:'WSG',color:'#90caf9',password:'291856',
+    id:'b2',name:'สาขา-เซ็นทรัลเวสเกต',code:'WSG',color:'#90caf9',password:'291856',staffPassword:'2918',
     emps:[
       {name:'ณัฐวรรณ แดงน้อย',nick:'(มาย)',pos:'ผจก.',phone:'096-2629260',last:'24'},
       {name:'ปริญญากรณ์ ประสาทผล',nick:'(ต้ัก)',pos:'แคชเชียร์',phone:'064-2936644',last:'20'},
@@ -1307,12 +1301,12 @@ let BRANCHES=[
   },
   // 9. ส่วนกลาง
   {
-    id:'b9',name:'ส่วนกลาง',code:'HQ',color:'#f48fb1',password:'574930',
+    id:'b9',name:'ส่วนกลาง',code:'HQ',color:'#f48fb1',password:'574930',staffPassword:'5749',
     emps:[],leaves:{}
   },
   // 10. HR
   {
-    id:'b10',name:'HR',code:'HR',color:'#b39ddb',password:'463817',
+    id:'b10',name:'HR',code:'HR',color:'#b39ddb',password:'463817',staffPassword:'4638',
     emps:[],leaves:{}
   },
 ];
@@ -2664,9 +2658,12 @@ function updateNavForBranch(){
     show('bn-dashboard',true); show('bn-stats',true);
   }
 
-  // แสดง bottom nav เฉพาะตอน login แล้ว
+  // แสดง bottom nav เฉพาะมือถือ
   const bn = document.getElementById('bottomNav');
-  if(bn) bn.style.display = 'flex';
+  if(bn) bn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+  window.addEventListener('resize', ()=>{
+    if(bn) bn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+  });
 
   // mobile user info
   const b = BRANCHES.find(x=>x.id===session.branchId);
