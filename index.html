@@ -1409,6 +1409,7 @@ function showLoginError(msg){
 function doLogout(){
   session = { branchId:null, isManager:false };
   selectedLoginBranch = null;
+  localStorage.removeItem('laliza_session');
   document.getElementById('loginPassword').value = '';
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('app').classList.remove('visible');
@@ -2844,6 +2845,40 @@ function updateNavForBranch(){
 // ══ INIT ══
 loadFromFirebase(()=>{
   startRealtimeSync();
+  // เช็ค session เก่าจาก localStorage
+  const saved = localStorage.getItem('laliza_session');
+  if(saved){
+    try{
+      const s = JSON.parse(saved);
+      const b = BRANCHES.find(x=>x.id===s.branchId);
+      const SESSION_LIMIT = 3 * 60 * 60 * 1000; // 3 ชั่วโมง
+      const expired = !s.loginAt || (Date.now() - s.loginAt) > SESSION_LIMIT;
+      if(b && !expired){
+        session = { branchId: s.branchId, isManager: s.isManager };
+        startApp();
+        return;
+      } else {
+        // หมดเวลา → ล้าง session
+        localStorage.removeItem('laliza_session');
+      }
+    } catch(e){}
+  }
+  buildLoginGrid();
+  
+  // ตรวจสอบ session timeout ทุก 1 นาที
+  setInterval(()=>{
+    const sv = localStorage.getItem('laliza_session');
+    if(!sv) return;
+    try{
+      const s = JSON.parse(sv);
+      const SESSION_LIMIT = 3 * 60 * 60 * 1000;
+      if(s.loginAt && (Date.now() - s.loginAt) > SESSION_LIMIT){
+        localStorage.removeItem('laliza_session');
+        alert('⏰ หมดเวลาใช้งาน (3 ชั่วโมง) กรุณา Login ใหม่');
+        doLogout();
+      }
+    } catch(e){}
+  }, 60 * 1000);
 });
 </script>
 </body>
