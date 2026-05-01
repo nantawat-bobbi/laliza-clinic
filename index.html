@@ -1036,25 +1036,45 @@ td.ic .ilast{font-size:11px;color:var(--green);}
         <!-- เพิ่มวันหยุดใหม่ -->
         <div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px;">
           <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:12px;">➕ เพิ่มวันหยุดใหม่</div>
-          <div style="display:grid;grid-template-columns:80px 80px 1fr auto;gap:8px;align-items:end;">
-            <div>
-              <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-family:monospace">วันที่</div>
-              <input type="number" id="hdDay" min="1" max="31" placeholder="13" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;">
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:8px;">
+              <div>
+                <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-family:monospace">วันที่</div>
+                <input type="number" id="hdDay" min="1" max="31" placeholder="13" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;background:var(--s2);">
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-family:monospace">เดือน</div>
+                <input type="number" id="hdMonth" min="1" max="12" placeholder="4" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;background:var(--s2);">
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-family:monospace">ชื่อวันหยุด</div>
+                <input type="text" id="hdName" placeholder="เช่น วันสงกรานต์" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;background:var(--s2);">
+              </div>
             </div>
             <div>
-              <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-family:monospace">เดือน</div>
-              <input type="number" id="hdMonth" min="1" max="12" placeholder="4" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;">
+              <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-family:monospace">ประเภทวันหยุด</div>
+              <div style="display:flex;gap:8px;">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 14px;border-radius:20px;border:2px solid var(--border);font-size:13px;font-weight:600;transition:all 0.15s;" id="tagNat">
+                  <input type="radio" name="hdTag" value="national" style="display:none"> 🎌 หยุดนักขัตฤกษ์
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 14px;border-radius:20px;border:2px solid var(--border);font-size:13px;font-weight:600;transition:all 0.15s;" id="tagOff">
+                  <input type="radio" name="hdTag" value="office" style="display:none"> 🏢 Office หยุด
+                </label>
+              </div>
             </div>
-            <div>
-              <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-family:monospace">ชื่อวันหยุด</div>
-              <input type="text" id="hdName" placeholder="เช่น วันสงกรานต์" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;">
-            </div>
-            <button onclick="addHoliday()" style="padding:8px 16px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">เพิ่ม</button>
+            <button onclick="addHoliday()" style="padding:10px 20px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:9px;font-family:Sarabun,sans-serif;font-size:14px;font-weight:700;cursor:pointer;align-self:flex-start;">✅ เพิ่มวันหยุด</button>
           </div>
         </div>
         <!-- รายการวันหยุด -->
         <div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
-          <div style="padding:14px 18px;border-bottom:1px solid var(--border);background:var(--s2);font-size:14px;font-weight:800;color:var(--text);">📋 รายการวันหยุดทั้งหมด</div>
+          <div style="display:flex;gap:8px;padding:12px 18px;border-bottom:1px solid var(--border);background:var(--s2);align-items:center;">
+            <div style="font-size:14px;font-weight:800;color:var(--text);">📋 รายการวันหยุดทั้งหมด</div>
+            <div style="margin-left:auto;display:flex;gap:6px;">
+              <button onclick="filterHoliday('all')" id="fAll" style="padding:4px 10px;border-radius:15px;border:1.5px solid var(--accent);background:#eef2ff;color:var(--accent);font-family:Sarabun,sans-serif;font-size:11px;font-weight:700;cursor:pointer;">ทั้งหมด</button>
+              <button onclick="filterHoliday('national')" id="fNat" style="padding:4px 10px;border-radius:15px;border:1.5px solid var(--border);background:var(--s1);color:var(--muted);font-family:Sarabun,sans-serif;font-size:11px;font-weight:700;cursor:pointer;">🎌 นักขัตฤกษ์</button>
+              <button onclick="filterHoliday('office')" id="fOff" style="padding:4px 10px;border-radius:15px;border:1.5px solid var(--border);background:var(--s1);color:var(--muted);font-family:Sarabun,sans-serif;font-size:11px;font-weight:700;cursor:pointer;">🏢 Office</button>
+            </div>
+          </div>
           <div id="holidayList" style="padding:8px 0;"></div>
         </div>
       </div>
@@ -1975,43 +1995,87 @@ let HOLIDAYS = {
   "1/5": "วันแรงงานแห่งชาติ",
   "5/5": "วันฉัตรมงคล",
 };
+function getHolidayInfo(val){
+  // รองรับทั้ง string เก่า และ object ใหม่
+  if(typeof val === 'string') return { name: val, tag: 'national' };
+  return { name: val.name||val, tag: val.tag||'national' };
+}
+function isHoliday(date, month){ 
+  const val = HOLIDAYS[date+'/'+month];
+  if(!val) return null;
+  return getHolidayInfo(val).name;
+}
 function renderHolidayList(){
   const list = document.getElementById('holidayList');
   if(!list) return;
   const MONTH_TH = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-  const keys = Object.keys(HOLIDAYS).sort((a,b)=>{
+  let keys = Object.keys(HOLIDAYS).sort((a,b)=>{
     const [ad,am]=a.split('/').map(Number);
     const [bd,bm]=b.split('/').map(Number);
     return am!==bm ? am-bm : ad-bd;
   });
+  if(_hdFilter !== 'all') keys = keys.filter(k=>getHolidayInfo(HOLIDAYS[k]).tag===_hdFilter);
   if(keys.length===0){
     list.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">ยังไม่มีวันหยุดพิเศษ</div>';
     return;
   }
   list.innerHTML = keys.map(k=>{
     const [d,m] = k.split('/');
-    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);">
-      <div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></div>
-      <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:4px 10px;font-size:13px;font-weight:700;color:#92400e;flex-shrink:0;">${d} ${MONTH_TH[parseInt(m)]}</div>
-      <div style="flex:1;font-size:14px;font-weight:600;color:var(--text);">🎌 ${HOLIDAYS[k]}</div>
+    const info = getHolidayInfo(HOLIDAYS[k]);
+    const isNat = info.tag==='national';
+    const tagIcon = isNat ? '🎌' : '🏢';
+    const tagLabel = isNat ? 'นักขัตฤกษ์' : 'Office';
+    const tagColor = isNat ? '#f59e0b' : '#4f46e5';
+    const tagBg = isNat ? '#fef3c7' : '#eef2ff';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--border);">
+      <div style="background:${tagBg};border:1.5px solid ${tagColor};border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700;color:${tagColor};flex-shrink:0;">${d} ${MONTH_TH[parseInt(m)]}</div>
+      <div style="flex:1;font-size:14px;font-weight:600;color:var(--text);">${tagIcon} ${info.name}</div>
+      <div style="font-size:10px;color:${tagColor};background:${tagBg};padding:2px 8px;border-radius:10px;font-weight:700;flex-shrink:0;">${tagLabel}</div>
       <button onclick="deleteHoliday('${k}')" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:var(--red);border-radius:7px;padding:5px 10px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">ลบ</button>
     </div>`;
   }).join('');
+}
+
+// radio tag styling
+document.addEventListener('click', function(e){
+  const labels = document.querySelectorAll('label[id^="tag"]');
+  labels.forEach(l=>{
+    const radio = l.querySelector('input[type=radio]');
+    if(radio && radio.checked){
+      l.style.borderColor='var(--accent)';l.style.background='#eef2ff';l.style.color='var(--accent)';
+    } else {
+      l.style.borderColor='var(--border)';l.style.background='var(--s1)';l.style.color='var(--text)';
+    }
+  });
+});
+
+let _hdFilter = 'all';
+function filterHoliday(type){
+  _hdFilter = type;
+  ['all','national','office'].forEach(t=>{
+    const btn = document.getElementById('f'+t.charAt(0).toUpperCase()+t.slice(1));
+    if(!btn) return;
+    if(t===type){ btn.style.borderColor='var(--accent)';btn.style.background='#eef2ff';btn.style.color='var(--accent)'; }
+    else { btn.style.borderColor='var(--border)';btn.style.background='var(--s1)';btn.style.color='var(--muted)'; }
+  });
+  renderHolidayList();
 }
 
 function addHoliday(){
   const d = document.getElementById('hdDay').value.trim();
   const m = document.getElementById('hdMonth').value.trim();
   const name = document.getElementById('hdName').value.trim();
+  const tagEl = document.querySelector('input[name="hdTag"]:checked');
+  const tag = tagEl ? tagEl.value : 'national';
   if(!d||!m||!name){ alert('กรุณากรอกข้อมูลให้ครบ'); return; }
   const key = d+'/'+m;
-  HOLIDAYS[key] = name;
+  HOLIDAYS[key] = { name, tag };
   saveHolidaysToFirebase();
   document.getElementById('hdDay').value='';
   document.getElementById('hdMonth').value='';
   document.getElementById('hdName').value='';
   renderHolidayList();
-  render(); // อัพเดทตาราง
+  render();
   showSaveIndicator('✅ เพิ่มวันหยุดแล้ว');
 }
 
