@@ -1418,6 +1418,20 @@ let BRANCHES=[
 // ══════════════════════════════════════════
 const ADMIN_PASSWORD = '16698';
 let session = { branchId: null, isManager: false, isAdmin: false };
+
+// Default branches สำหรับแสดงหน้า login ก่อน Firebase โหลด
+const DEFAULT_BRANCHES = [
+  {id:'b7',name:'สาขา-เซ็นทรัลพระราม 9',color:'#ffb74d'},
+  {id:'b8',name:'สาขา-เซ็นทรัลปิ่นเกล้า',color:'#4dd0e1'},
+  {id:'b3',name:'สาขา-ซีคอนบางแค',color:'#81c784'},
+  {id:'b4',name:'สาขา-ฟิวเจอร์พาร์ครังสิต',color:'#e57373'},
+  {id:'b5',name:'สาขา-เดอะพรอมานาด',color:'#ba68c8'},
+  {id:'b6',name:'สาขา-เดอะมอลล์งามวงศ์วาน',color:'#a5d6a7'},
+  {id:'b1',name:'สาขา-ซีคอนศรีนครินทร์',color:'#ff8a65'},
+  {id:'b2',name:'สาขา-เซ็นทรัลเวสต์เกต',color:'#90caf9'},
+  {id:'b9',name:'ส่วนกลาง',color:'#f48fb1'},
+  {id:'b10',name:'HR',color:'#ce93d8'},
+];
 let lms = { bid:null, ei:null, di:null, sel:null, note:'' };
 let selectedLoginBranch = null;
 let DOCUMENTS = JSON.parse(localStorage.getItem('laliza_documents') || '[]');
@@ -1427,11 +1441,16 @@ let currentDocData = null;
 // LOGIN
 // ══════════════════════════════════════════
 function buildLoginGrid(){
-  document.getElementById('branchSelectGrid').innerHTML = BRANCHES.map(b=>`
+  const grid = document.getElementById('branchSelectGrid');
+  if(!grid) return;
+  // ถ้า BRANCHES ว่าง ให้ใช้ default branches
+  const list = BRANCHES.length > 0 ? BRANCHES : DEFAULT_BRANCHES;
+  grid.innerHTML = list.map(b=>`
     <button class="branch-select-btn ${selectedLoginBranch===b.id?'sel':''}" onclick="selectLoginBranch('${b.id}')">
       <span class="bdot" style="background:${b.color}"></span>${b.name}
     </button>
   `).join('');
+  document.getElementById('loginScreen').style.display='flex';
 }
 
 function selectLoginBranch(id){
@@ -3183,6 +3202,9 @@ function updateNavForBranch(){
 }
 
 // ══ INIT ══
+// แสดงหน้า login ก่อนเลย ไม่รอ Firebase
+buildLoginGrid();
+
 // เช็ค session ก่อนเลย เพื่อแสดง loading แทน login screen
 const _savedSession = localStorage.getItem('laliza_session');
 let _autoLogin = false;
