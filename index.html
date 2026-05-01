@@ -2244,11 +2244,30 @@ function openEditEmp(bid, ei){
   document.getElementById('empOverlay').classList.add('open');
 }
 function saveEmployee(){
-  const name=document.getElementById('eName').value.trim();
+  const name = document.getElementById('eName').value.trim();
   if(!name) return alert('กรุณากรอกชื่อ');
-  const b=BRANCHES.find(x=>x.id===session.branchId);
-  b.emps.push({name,nick:document.getElementById('eNick').value.trim(),pos:document.getElementById('ePos').value.trim()||'BT',phone:document.getElementById('ePhone').value.trim()||'-',last:'-'});
-  closeEmpModal(); render();
+  const editIdx = document.getElementById('empEditIndex').value;
+  const editBid = document.getElementById('empEditBid').value;
+  const bid = (editIdx !== '' && editBid) ? editBid : session.branchId;
+  const b = BRANCHES.find(x=>x.id===bid);
+  if(!b) return;
+  // แปลง emps เป็น Array ก่อนเสมอ
+  b.emps = toArray(b.emps || []);
+  const nick = document.getElementById('eNick').value.trim();
+  const pos = document.getElementById('ePos').value.trim() || 'BT';
+  const phone = document.getElementById('ePhone').value.trim() || '-';
+  if(editIdx !== ''){
+    // แก้ไข — ทับข้อมูลเดิม
+    const ei = parseInt(editIdx);
+    if(ei >= 0 && ei < b.emps.length){
+      b.emps[ei] = { ...b.emps[ei], name, nick, pos, phone };
+    } else { alert('ไม่พบพนักงาน'); return; }
+  } else {
+    // เพิ่มใหม่
+    b.emps.push({ name, nick, pos, phone, last: '-' });
+  }
+  closeEmpModal();
+  saveToFirebase();
 }
 function deleteEmployee(){
   const ei = parseInt(document.getElementById('empEditIndex').value);
@@ -2732,15 +2751,7 @@ delLeave = function(){
   saveToFirebase();
 };
 
-const _origSaveEmployee = saveEmployee;
-saveEmployee = function(){
-  const name = document.getElementById('eName').value.trim();
-  if(!name) return alert('กรุณากรอกชื่อ');
-  const b = BRANCHES.find(x=>x.id===session.branchId);
-  b.emps.push({name,nick:document.getElementById('eNick').value.trim(),pos:document.getElementById('ePos').value.trim()||'BT',phone:document.getElementById('ePhone').value.trim()||'-',last:'-'});
-  closeEmpModal(); render();
-  saveToFirebase();
-};
+// saveEmployee override removed - ใช้ version ใหม่แล้ว
 
 const _origSaveNameEdit = saveNameEdit;
 saveNameEdit = function(){
