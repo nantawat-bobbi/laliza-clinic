@@ -2116,8 +2116,7 @@ function editHoliday(key){
   const [d,m] = key.split('/');
   const newName = prompt('แก้ไขชื่อวันหยุด:', info.name);
   if(newName===null) return;
-  const newTag = confirm('เป็นหยุดนักขัตฤกษ์ไหม?
-(กด OK = นักขัตฤกษ์, Cancel = Office หยุด)') ? 'national' : 'office';
+  const newTag = confirm('เป็นหยุดนักขัตฤกษ์ไหม? (OK=นักขัตฤกษ์ / Cancel=Office)') ? 'national' : 'office';
   HOLIDAYS[key] = { name: newName.trim()||info.name, tag: newTag };
   saveHolidaysToFirebase();
   renderHolidayList();
@@ -3202,6 +3201,9 @@ function updateNavForBranch(){
 }
 
 // ══ INIT ══
+// แสดงปุ่มสาขาก่อนเลย (ใช้ DEFAULT_BRANCHES)
+buildLoginGrid();
+
 const _savedSession = localStorage.getItem('laliza_session');
 let _autoLogin = false;
 if(_savedSession){
@@ -3212,7 +3214,7 @@ if(_savedSession){
     if(!_expired && _s.branchId){
       _autoLogin = true;
       session = { branchId: _s.branchId, isManager: _s.isManager, isAdmin: _s.isAdmin||false };
-      showLoadingOverlay(true); // แสดง loading ทันที ไม่ให้เห็น login
+      showLoadingOverlay(true);
     } else {
       localStorage.removeItem('laliza_session');
     }
@@ -3256,12 +3258,6 @@ loadFromFirebase(()=>{
     } catch(e){}
   }, 60 * 1000);
 });
-// เรียก buildLoginGrid หลัง DOM พร้อม
-if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', buildLoginGrid);
-} else {
-  buildLoginGrid();
-}
 </script>
 </body>
 </html>
