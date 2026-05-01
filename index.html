@@ -592,6 +592,29 @@ td.ic .ilast{font-size:11px;color:var(--green);}
 }
 .b5-crown{font-size:14px;flex-shrink:0;}
 
+/* ── MANAGER LEAVE PAGE ── */
+.mgrleave-hero{background:linear-gradient(135deg,#1a1a2e,#0f3460);padding:24px;color:#fff;flex-shrink:0;}
+.mgrleave-hero h2{font-size:20px;font-weight:800;}
+.mgrleave-hero p{font-size:12px;color:rgba(255,255,255,0.6);margin-top:3px;}
+.mgrleave-body{padding:18px 20px 90px;}
+.mgrleave-section{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+.mgrleave-section-header{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);}
+.mgrleave-section-icon{font-size:24px;}
+.mgrleave-section-title{font-size:15px;font-weight:800;color:var(--text);}
+.mgrleave-count{margin-left:auto;background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;color:var(--muted);}
+.mgrleave-empty{padding:24px;text-align:center;color:var(--muted);font-size:13px;}
+.mgrleave-item{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--border);transition:background 0.15s;}
+.mgrleave-item:last-child{border-bottom:none;}
+.mgrleave-item:hover{background:var(--s2);}
+.mgrleave-date{background:var(--s2);border:1.5px solid var(--border);border-radius:10px;padding:6px 10px;text-align:center;min-width:52px;flex-shrink:0;}
+.mgrleave-date-num{font-size:18px;font-weight:800;color:var(--text);line-height:1;}
+.mgrleave-date-mon{font-size:9px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:1px;}
+.mgrleave-badge{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;}
+.mgrleave-info{flex:1;min-width:0;}
+.mgrleave-name{font-size:14px;font-weight:700;color:var(--text);}
+.mgrleave-branch{font-size:11px;color:var(--accent);font-family:'IBM Plex Mono',monospace;margin-top:1px;}
+.mgrleave-dow{font-size:10px;color:var(--muted);margin-top:2px;}
+
 /* SCROLLBAR */
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:var(--s2);}
@@ -823,6 +846,9 @@ td.ic .ilast{font-size:11px;color:var(--green);}
         <span class="nav-icon">📊</span> Dashboard วันนี้
       </div>
       <div class="nav-section-label">รายงาน</div>
+      <div class="nav-item" id="nav-mgrleave" onclick="switchTab('mgrleave',event)" style="display:none">
+        <span class="nav-icon">👔</span> ผจก.ทุกสาขา
+      </div>
       <div class="nav-item" id="nav-stats" onclick="switchTab('stats',event)">
         <span class="nav-icon">📈</span> สถิติการลา
       </div>
@@ -969,6 +995,15 @@ td.ic .ilast{font-size:11px;color:var(--green);}
       <div class="dash-grid" id="dashGrid"></div>
     </div>
 
+    <!-- MANAGER LEAVE -->
+    <div id="pageMgrleave" class="page-content" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+      <div class="mgrleave-hero">
+        <h2>👔 การลา — ผู้จัดการทุกสาขา</h2>
+        <p>แบ่งตามประเภทการลา ครอบคลุมทุกสาขา เมษายน–พฤษภาคม 2569</p>
+      </div>
+      <div class="mgrleave-body" id="mgrleaveBody"></div>
+    </div>
+
     <!-- STATS -->
     <div id="pageStats" class="page-content" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <div class="stats-hero">
@@ -1009,6 +1044,9 @@ td.ic .ilast{font-size:11px;color:var(--green);}
     </button>
     <button class="bottom-nav-item" id="bn-dashboard" onclick="switchTab('dashboard',event)">
       <span class="bn-icon">📊</span>วันนี้
+    </button>
+    <button class="bottom-nav-item" id="bn-mgrleave" onclick="switchTab('mgrleave',event)" style="display:none">
+      <span class="bn-icon">👔</span>ผจก.
     </button>
     <button class="bottom-nav-item" id="bn-stats" onclick="switchTab('stats',event)">
       <span class="bn-icon">📈</span>สถิติ
@@ -1425,7 +1463,7 @@ function getCurrentBranch(){
 let currentTab = 'overview';
 function switchTab(tab, e){
   currentTab = tab;
-  const pages = { overview:'pageOverview', table:'pageTable', tableAll:'pageTableAll', dashboard:'pageDashboard', stats:'pageStats', docs:'pageDocs' };
+  const pages = { overview:'pageOverview', table:'pageTable', tableAll:'pageTableAll', dashboard:'pageDashboard', stats:'pageStats', docs:'pageDocs', mgrleave:'pageMgrleave' };
   document.querySelectorAll('.page-content').forEach(p=>p.style.display='none');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.bottom-nav-item').forEach(n=>n.classList.remove('active'));
@@ -1440,6 +1478,7 @@ function switchTab(tab, e){
   if(tab==='dashboard') renderDashboard();
   if(tab==='stats') renderStats();
   if(tab==='docs') renderDocs();
+  if(tab==='mgrleave') renderMgrLeave();
 }
 
 function toggleMobileMenu(){
@@ -1713,6 +1752,98 @@ function filterGlobalRank(){
       )
     : _globalRankData;
   renderGlobalRankTable(filtered);
+}
+
+function renderMgrLeave(){
+  const body = document.getElementById('mgrleaveBody');
+  if(!body) return;
+
+  const MGR_POS = ['ผู้จัดการ','ผจก.','Branch Manager','Manager'];
+  const allBranches = BRANCHES.filter(b=>b.id!=='b9'&&b.id!=='b10');
+
+  // รวบรวมข้อมูลการลาของผจก.ทุกสาขา
+  const allLeaves = []; // {date, month, dow, dayName, code, emp, branch, branchColor}
+
+  allBranches.forEach(branch=>{
+    const emps = Array.isArray(branch.emps)?branch.emps:Object.values(branch.emps||{});
+    const bl = branch.leaves||{};
+    emps.forEach((emp,ei)=>{
+      if(!emp||!MGR_POS.includes(emp.pos)) return;
+      const el = bl[ei]||bl[String(ei)]||{};
+      Object.keys(el).forEach(diStr=>{
+        const di = parseInt(diStr);
+        const day = DAYS[di];
+        if(!day) return;
+        const ld = getLeaveData(bl,ei,di);
+        if(!ld) return;
+        allLeaves.push({
+          di, day,
+          code: ld.code,
+          note: ld.note||'',
+          emp, branch:branch.name,
+          branchColor:branch.color
+        });
+      });
+    });
+  });
+
+  if(allLeaves.length===0){
+    body.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted)">ยังไม่มีข้อมูลการลาของผู้จัดการ</div>';
+    return;
+  }
+
+  // จัดกลุ่มตามประเภท
+  const groups = {};
+  TYPES.forEach(t=>{ groups[t.code]=[]; });
+
+  allLeaves.forEach(item=>{
+    if(groups[item.code]) groups[item.code].push(item);
+  });
+
+  const DAY_TH = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const MONTH_TH = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+  let html = '';
+
+  TYPES.forEach(t=>{
+    const items = groups[t.code]||[];
+    if(items.length===0) return;
+
+    // เรียงตามวันที่
+    items.sort((a,b)=>a.di-b.di);
+
+    html += `<div class="mgrleave-section">
+      <div class="mgrleave-section-header">
+        <div class="mgrleave-section-icon">${t.icon}</div>
+        <div class="mgrleave-section-title">${t.full}</div>
+        <div class="mgrleave-count">${items.length} ครั้ง</div>
+      </div>`;
+
+    items.forEach(item=>{
+      const d = item.day;
+      const isWe = d.we;
+      html += `<div class="mgrleave-item">
+        <div class="mgrleave-date" style="${isWe?'border-color:#ef4444;':''}">
+          <div class="mgrleave-date-num" style="${isWe?'color:#ef4444':''}">${d.date}</div>
+          <div class="mgrleave-date-mon">${MONTH_TH[d.month]}</div>
+        </div>
+        <div class="mgrleave-badge ${t.cls}">${t.code}</div>
+        <div class="mgrleave-info">
+          <div class="mgrleave-name">${item.emp.name} ${item.emp.nick||''}</div>
+          <div class="mgrleave-branch">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${item.branchColor};margin-right:4px;vertical-align:middle;"></span>
+            ${item.branch}
+          </div>
+          <div class="mgrleave-dow">วัน${DAY_TH[d.dow]}</div>
+          ${item.note?`<div style="font-size:11px;color:var(--muted);margin-top:2px;font-style:italic;">💬 ${item.note}</div>`:''}
+        </div>
+      </div>`;
+    });
+
+    html += `</div>`;
+  });
+
+  body.innerHTML = html;
 }
 
 function renderBottom5(){
@@ -2648,14 +2779,14 @@ function updateNavForBranch(){
     show('bn-dashboard',false); show('bn-stats',true);
   } else if(isGlobal){
     show('nav-overview',true); show('nav-table',false); show('nav-tableAll',true);
-    show('nav-dashboard',true); show('nav-stats',true); show('nav-docs',true);
+    show('nav-dashboard',true); show('nav-mgrleave',true); show('nav-stats',true); show('nav-docs',true);
     show('bn-overview',true); show('bn-table',false); show('bn-tableAll',true);
-    show('bn-dashboard',true); show('bn-stats',true);
+    show('bn-dashboard',true); show('bn-mgrleave',true); show('bn-stats',true);
   } else {
     show('nav-overview',true); show('nav-table',true); show('nav-tableAll',false);
-    show('nav-dashboard',true); show('nav-stats',true); show('nav-docs',true);
+    show('nav-dashboard',true); show('nav-mgrleave', session.isManager); show('nav-stats',true); show('nav-docs',true);
     show('bn-overview',true); show('bn-table',true); show('bn-tableAll',false);
-    show('bn-dashboard',true); show('bn-stats',true);
+    show('bn-dashboard',true); show('bn-mgrleave', session.isManager); show('bn-stats',true);
   }
 
   // แสดง bottom nav เฉพาะมือถือ
