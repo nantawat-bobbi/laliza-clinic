@@ -2043,6 +2043,7 @@ function renderHolidayList(){
       <div style="background:${tagBg};border:1.5px solid ${tagColor};border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700;color:${tagColor};flex-shrink:0;">${d} ${MONTH_TH[parseInt(m)]}</div>
       <div style="flex:1;font-size:14px;font-weight:600;color:var(--text);">${tagIcon} ${info.name}</div>
       <div style="font-size:10px;color:${tagColor};background:${tagBg};padding:2px 8px;border-radius:10px;font-weight:700;flex-shrink:0;">${tagLabel}</div>
+      <button onclick="editHoliday('${k}')" style="background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 10px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">✏️</button>
       <button onclick="deleteHoliday('${k}')" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:var(--red);border-radius:7px;padding:5px 10px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">ลบ</button>
     </div>`;
   }).join('');
@@ -2089,6 +2090,20 @@ function addHoliday(){
   renderHolidayList();
   render();
   showSaveIndicator('✅ เพิ่มวันหยุดแล้ว');
+}
+
+function editHoliday(key){
+  const info = getHolidayInfo(HOLIDAYS[key]);
+  const [d,m] = key.split('/');
+  const newName = prompt('แก้ไขชื่อวันหยุด:', info.name);
+  if(newName===null) return;
+  const newTag = confirm('เป็นหยุดนักขัตฤกษ์ไหม?
+(กด OK = นักขัตฤกษ์, Cancel = Office หยุด)') ? 'national' : 'office';
+  HOLIDAYS[key] = { name: newName.trim()||info.name, tag: newTag };
+  saveHolidaysToFirebase();
+  renderHolidayList();
+  render();
+  showSaveIndicator('✅ แก้ไขวันหยุดแล้ว');
 }
 
 function deleteHoliday(key){
@@ -2393,10 +2408,19 @@ function render(){
       DAYS.forEach((day,di)=>{
         const ld = getLeaveData(b.leaves,ei,di);
         const locked = !session.isManager;
-        let tip = `${emp.name} ${day.date}/${day.month}`;
-        if(ld){ const t=TYPES.find(t=>t.code===ld.code); tip+=`\n${ld.code} - ${t?t.label:'วันหยุด'}`; if(ld.note) tip+=`\n💬 ${ld.note}`; }
-        const isSun = day.dow===0;
-        r += `<td class="dc ${day.we?'wec':''} ${isSun?'sun':''} ${locked?'locked':''}" ${locked?'':` onclick="openLeaveModal('${b.id}',${ei},${di})"`} title="${tip}">`;
+        const _MS=['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+        const _DS=['(อา)','(จ)','(อ)','(พ)','(พฤ)','(ศ)','(ส)'];
+        const _dateStr=`${_DS[day.dow]}${day.date} ${_MS[day.month]} 69`;
+        const _hname=isHoliday(day.date,day.month);
+        const _hval=_hname?HOLIDAYS[String(day.date)+'/'+String(day.month)]:null;
+        const _htag=_hval&&typeof _hval==='object'?_hval.tag:'national';
+        const _hlabel=_htag==='office'?'🏢 Office หยุด':'🎌 หยุดนักขัตฤกษ์';
+        let tip=_hname?`${_hlabel}: ${_hname}\n`:'';
+        if(ld){const _t=TYPES.find(t=>t.code===ld.code);tip+=`${emp.name||''} ${emp.nick||''}\n📅 ${_dateStr}\n${_t?_t.icon:''} ${ld.code} - ${_t?_t.label:'วันหยุด'}`;if(ld.note)tip+=`\n💬 ${ld.note}`;}
+        else{tip+=`📅 ${_dateStr}`;}
+        const isSun=day.dow===0;
+        const isHday=!!_hname;
+        r += `<td class="dc ${day.we?'wec':''} ${isSun?'sun':''} ${isHday?'holiday-col':''} ${locked?'locked':''}" ${locked?'':` onclick="openLeaveModal('${b.id}',${ei},${di})"`} title="${tip}">`;
         if(ld) r += `<div class="ld ${getClass(ld.code)}">${ld.code}</div>`;
         r += `</td>`;
       });
