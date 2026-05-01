@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LALIZA CLINIC - ระบบตารางวันหยุด</title>
+<!-- Firebase SDK โหลดก่อน -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
@@ -1147,11 +1151,6 @@ td.ic .ilast{font-size:11px;color:var(--green);}
     </div>
   </div>
 </div>
-
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 
 <script>
 // ══════════════════════════════════════════
@@ -2479,13 +2478,16 @@ document.getElementById('uploadArea').addEventListener('drop',e=>{
 // ══════════════════════════════════════════
 
 // บันทึกข้อมูลสาขาทั้งหมดขึ้น Firebase
+function toArray(val){ 
+  if(!val) return [];
+  if(Array.isArray(val)) return val.filter(e=>e&&e.name);
+  return Object.values(val).filter(e=>e&&e.name);
+}
+
 function saveToFirebase(callback){
   const data = {};
   BRANCHES.forEach(b=>{
-    // emps: แปลงเป็น Array เสมอ กรอง null ออก
-    const emps = (Array.isArray(b.emps) ? b.emps : Object.values(b.emps||{})).filter(e=>e&&e.name);
-    
-    // leaves: เก็บเป็น Object {empIndex: {dayIndex: leaveData}}
+    const emps = toArray(b.emps);
     const rawLeaves = b.leaves||{};
     const cleanLeaves = {};
     Object.keys(rawLeaves).forEach(ei=>{
@@ -2493,38 +2495,25 @@ function saveToFirebase(callback){
       if(!empLeave || typeof empLeave !== 'object') return;
       const cleanDays = {};
       Object.keys(empLeave).forEach(di=>{
-        if(empLeave[di]) cleanDays[di] = empLeave[di];
+        if(empLeave[di]) cleanDays[parseInt(di)] = empLeave[di];
       });
-      if(Object.keys(cleanDays).length > 0){
-        cleanLeaves[ei] = cleanDays;
-      }
+      if(Object.keys(cleanDays).length > 0) cleanLeaves[parseInt(ei)] = cleanDays;
     });
-
     data[b.id] = {
-      id: b.id, name: b.name, code: b.code, color: b.color,
-      password: b.password, staffPassword: b.staffPassword||'',
-      emps, leaves: cleanLeaves
+      id:b.id, name:b.name, code:b.code, color:b.color,
+      password:b.password, staffPassword:b.staffPassword||'',
+      emps, leaves:cleanLeaves
     };
   });
 
+  // อัพเดท BRANCHES ใน memory ก่อน แล้ว render ทันที
+  // จากนั้นค่อย push ขึ้น Firebase
+  showSaveIndicator('⏳ กำลังบันทึก...');
+  if(session.branchId){ render(); }
+
   db.ref('branches').set(data)
     .then(()=>{
-      // โหลดกลับจาก Firebase ทันทีเพื่อยืนยัน
-      return db.ref('branches').once('value');
-    })
-    .then(snap=>{
-      const raw = snap.val();
-      const fresh = parseFirebaseBranches(raw);
-      if(fresh && fresh.length > 0){
-        BRANCHES = fresh;
-      }
       showSaveIndicator('✅ บันทึกแล้ว');
-      if(session.branchId) render();
-      if(typeof currentTab !== 'undefined'){
-        if(currentTab==='overview') renderOverview();
-        if(currentTab==='dashboard') renderDashboard();
-        if(currentTab==='stats') renderStats();
-      }
       if(callback) callback();
     })
     .catch(e=>{ console.error(e); showSaveIndicator('❌ บันทึกไม่สำเร็จ'); });
@@ -2533,22 +2522,24 @@ function saveToFirebase(callback){
 // โหลดข้อมูลจาก Firebase ครั้งเดียวตอน login
 function parseFirebaseBranches(data){
   if(!data) return null;
-  // Firebase เก็บเป็น Object {b1:{...}, b2:{...}} ใช้ id เป็น key
+  const branchOrder = ['b7','b8','b3','b4','b5','b6','b1','b2','b9','b10'];
+  let result = [];
   if(typeof data === 'object' && !Array.isArray(data)){
-    // เรียงตามลำดับ BRANCHES เดิม
-    const branchOrder = ['b7','b8','b3','b4','b5','b6','b1','b2','b9','b10'];
-    const result = [];
-    branchOrder.forEach(id=>{
-      if(data[id]) result.push(data[id]);
-    });
-    // ถ้ามี branch อื่นที่ไม่อยู่ใน order
-    Object.keys(data).forEach(k=>{
-      if(!branchOrder.includes(k) && data[k]) result.push(data[k]);
-    });
-    return result.length > 0 ? result : null;
+    branchOrder.forEach(id=>{ if(data[id]) result.push(data[id]); });
+    Object.keys(data).forEach(k=>{ if(!branchOrder.includes(k)&&data[k]) result.push(data[k]); });
+  } else if(Array.isArray(data)){
+    result = data.filter(x=>x);
   }
-  if(Array.isArray(data)) return data.filter(x=>x);
-  return null;
+  // แปลง emps เป็น Array เสมอ
+  result.forEach(b=>{
+    if(b && b.emps && !Array.isArray(b.emps)){
+      b.emps = Object.values(b.emps).filter(e=>e&&e.name);
+    } else if(b && !b.emps){
+      b.emps = [];
+    }
+    if(b && !b.leaves) b.leaves = {};
+  });
+  return result.length > 0 ? result : null;
 }
 
 function loadFromFirebase(callback){
