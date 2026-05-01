@@ -619,6 +619,12 @@ td.ic .ilast{font-size:11px;color:var(--green);}
 .mgrleave-branch{font-size:11px;color:var(--accent);font-family:'IBM Plex Mono',monospace;margin-top:1px;}
 .mgrleave-dow{font-size:10px;color:var(--muted);margin-top:2px;}
 
+/* ── วันหยุดพิเศษ ── */
+.holiday-dot{width:6px;height:6px;border-radius:50%;background:#f59e0b;margin:0 auto 2px;display:none;}
+.holiday-dot.visible{display:block;}
+.th-daynum.holiday{color:#d97706 !important;}
+.holiday-col{background:rgba(245,158,11,0.06) !important;}
+
 /* SCROLLBAR */
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:var(--s2);}
@@ -856,6 +862,9 @@ td.ic .ilast{font-size:11px;color:var(--green);}
       <div class="nav-item" id="nav-stats" onclick="switchTab('stats',event)">
         <span class="nav-icon">📈</span> สถิติการลา
       </div>
+      <div class="nav-item" id="nav-holiday" onclick="switchTab('holiday',event)" style="display:none">
+        <span class="nav-icon">🎌</span> วันหยุดพิเศษ
+      </div>
       <div class="nav-item" id="nav-docs" onclick="switchTab('docs',event)">
         <span class="nav-icon">📄</span> เอกสาร
       </div>
@@ -1015,6 +1024,40 @@ td.ic .ilast{font-size:11px;color:var(--green);}
         <p>สรุปการลาแต่ละประเภท รายบุคคล รายสาขา</p>
       </div>
       <div class="stats-container" id="statsContainer"></div>
+    </div>
+
+    <!-- HOLIDAY MANAGER -->
+    <div id="pageHoliday" class="page-content" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+      <div style="background:linear-gradient(135deg,#92400e,#b45309);padding:24px;color:#fff;flex-shrink:0;">
+        <h2 style="font-size:20px;font-weight:800;">🎌 จัดการวันหยุดพิเศษ</h2>
+        <p style="font-size:12px;color:rgba(255,255,255,0.65);margin-top:3px;">เพิ่ม/ลบวันหยุดนักขัตฤกษ์ หรือวันหยุดพิเศษ</p>
+      </div>
+      <div style="padding:18px 20px 90px;">
+        <!-- เพิ่มวันหยุดใหม่ -->
+        <div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px;">
+          <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:12px;">➕ เพิ่มวันหยุดใหม่</div>
+          <div style="display:grid;grid-template-columns:80px 80px 1fr auto;gap:8px;align-items:end;">
+            <div>
+              <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-family:monospace">วันที่</div>
+              <input type="number" id="hdDay" min="1" max="31" placeholder="13" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;">
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-family:monospace">เดือน</div>
+              <input type="number" id="hdMonth" min="1" max="12" placeholder="4" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;">
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-family:monospace">ชื่อวันหยุด</div>
+              <input type="text" id="hdName" placeholder="เช่น วันสงกรานต์" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-family:Sarabun,sans-serif;font-size:14px;outline:none;">
+            </div>
+            <button onclick="addHoliday()" style="padding:8px 16px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">เพิ่ม</button>
+          </div>
+        </div>
+        <!-- รายการวันหยุด -->
+        <div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+          <div style="padding:14px 18px;border-bottom:1px solid var(--border);background:var(--s2);font-size:14px;font-weight:800;color:var(--text);">📋 รายการวันหยุดทั้งหมด</div>
+          <div id="holidayList" style="padding:8px 0;"></div>
+        </div>
+      </div>
     </div>
 
     <!-- DOCS -->
@@ -1540,7 +1583,7 @@ function getCurrentBranch(){
 let currentTab = 'overview';
 function switchTab(tab, e){
   currentTab = tab;
-  const pages = { overview:'pageOverview', table:'pageTable', tableAll:'pageTableAll', dashboard:'pageDashboard', stats:'pageStats', docs:'pageDocs', mgrleave:'pageMgrleave' };
+  const pages = { overview:'pageOverview', table:'pageTable', tableAll:'pageTableAll', dashboard:'pageDashboard', stats:'pageStats', docs:'pageDocs', mgrleave:'pageMgrleave', holiday:'pageHoliday' };
   document.querySelectorAll('.page-content').forEach(p=>p.style.display='none');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.bottom-nav-item').forEach(n=>n.classList.remove('active'));
@@ -1556,6 +1599,7 @@ function switchTab(tab, e){
   if(tab==='stats') renderStats();
   if(tab==='docs') renderDocs();
   if(tab==='mgrleave') renderMgrLeave();
+  if(tab==='holiday') renderHolidayList();
 }
 
 function toggleMobileMenu(){
@@ -1923,6 +1967,68 @@ function renderMgrLeave(){
   body.innerHTML = html;
 }
 
+// ══ HOLIDAYS MANAGEMENT ══
+function renderHolidayList(){
+  const list = document.getElementById('holidayList');
+  if(!list) return;
+  const MONTH_TH = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const keys = Object.keys(HOLIDAYS).sort((a,b)=>{
+    const [ad,am]=a.split('/').map(Number);
+    const [bd,bm]=b.split('/').map(Number);
+    return am!==bm ? am-bm : ad-bd;
+  });
+  if(keys.length===0){
+    list.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">ยังไม่มีวันหยุดพิเศษ</div>';
+    return;
+  }
+  list.innerHTML = keys.map(k=>{
+    const [d,m] = k.split('/');
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);">
+      <div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></div>
+      <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:4px 10px;font-size:13px;font-weight:700;color:#92400e;flex-shrink:0;">${d} ${MONTH_TH[parseInt(m)]}</div>
+      <div style="flex:1;font-size:14px;font-weight:600;color:var(--text);">🎌 ${HOLIDAYS[k]}</div>
+      <button onclick="deleteHoliday('${k}')" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:var(--red);border-radius:7px;padding:5px 10px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">ลบ</button>
+    </div>`;
+  }).join('');
+}
+
+function addHoliday(){
+  const d = document.getElementById('hdDay').value.trim();
+  const m = document.getElementById('hdMonth').value.trim();
+  const name = document.getElementById('hdName').value.trim();
+  if(!d||!m||!name){ alert('กรุณากรอกข้อมูลให้ครบ'); return; }
+  const key = d+'/'+m;
+  HOLIDAYS[key] = name;
+  saveHolidaysToFirebase();
+  document.getElementById('hdDay').value='';
+  document.getElementById('hdMonth').value='';
+  document.getElementById('hdName').value='';
+  renderHolidayList();
+  render(); // อัพเดทตาราง
+  showSaveIndicator('✅ เพิ่มวันหยุดแล้ว');
+}
+
+function deleteHoliday(key){
+  if(!confirm(`ต้องการลบ "${HOLIDAYS[key]}" ออกจากวันหยุดพิเศษ?`)) return;
+  delete HOLIDAYS[key];
+  saveHolidaysToFirebase();
+  renderHolidayList();
+  render();
+  showSaveIndicator('🗑️ ลบวันหยุดแล้ว');
+}
+
+function saveHolidaysToFirebase(){
+  db.ref('holidays').set(HOLIDAYS).catch(e=>console.error(e));
+}
+
+function loadHolidaysFromFirebase(cb){
+  db.ref('holidays').once('value').then(snap=>{
+    const data = snap.val();
+    if(data && typeof data === 'object') HOLIDAYS = data;
+    if(cb) cb();
+  }).catch(e=>{ if(cb) cb(); });
+}
+
 function renderBottom5(){
   const section = document.getElementById('bottom5Section');
   if(!section) return;
@@ -2174,7 +2280,13 @@ function render(){
   h+=`<th class="th-month" colspan="${mayDays.length}">พฤษภาคม</th></tr><tr>`;
   DAYS.forEach(day=>{
     const sunBorder = day.dow===0 ? 'border-left:2px solid rgba(220,38,38,0.25);' : '';
-    h+=`<th style="${sunBorder}"><div class="th-dayname ${day.we?'we':''}">${day.name}</div><div class="th-daynum ${day.we?'we':''}">${day.date}</div></th>`;
+    const hday = isHoliday(day.date, day.month);
+    const hdotTitle = hday ? ` title="🎌 ${hday}"` : '';
+    h+=`<th style="${sunBorder}">
+      <div class="th-dayname ${day.we?'we':''}">${day.name}</div>
+      <div class="th-daynum ${day.we?'we':''} ${hday?'holiday':''}">${day.date}</div>
+      <div class="holiday-dot ${hday?'visible':''}"${hdotTitle}></div>
+    </th>`;
   });
   h+=`</tr></thead><tbody>`;
 
@@ -2931,12 +3043,12 @@ function updateNavForBranch(){
     show('bn-dashboard',false); show('bn-stats',true);
   } else if(isGlobal){
     show('nav-overview',true); show('nav-table',false); show('nav-tableAll',true);
-    show('nav-dashboard',true); show('nav-mgrleave',true); show('nav-stats',true); show('nav-docs',true);
+    show('nav-dashboard',true); show('nav-mgrleave',true); show('nav-stats',true); show('nav-docs',true); show('nav-holiday', session.isAdmin);
     show('bn-overview',true); show('bn-table',false); show('bn-tableAll',true);
     show('bn-dashboard',true); show('bn-mgrleave',true); show('bn-stats',true);
   } else {
     show('nav-overview',true); show('nav-table',true); show('nav-tableAll',false);
-    show('nav-dashboard',true); show('nav-mgrleave', session.isManager); show('nav-stats',true); show('nav-docs',true);
+    show('nav-dashboard',true); show('nav-mgrleave', session.isManager); show('nav-stats',true); show('nav-docs',true); show('nav-holiday', session.isAdmin);
     show('bn-overview',true); show('bn-table',true); show('bn-tableAll',false);
     show('bn-dashboard',true); show('bn-mgrleave', session.isManager); show('bn-stats',true);
   }
@@ -2973,6 +3085,9 @@ if(_savedSession){
   } catch(e){}
 }
 
+loadHolidaysFromFirebase(()=>{
+  // โหลด holidays แล้วค่อย load branches
+});
 loadFromFirebase(()=>{
   startRealtimeSync();
 
