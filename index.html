@@ -1096,12 +1096,14 @@ td.ic .ilast{font-size:11px;color:var(--green);}
   <div class="modal">
     <h3 id="empModalTitle">➕ เพิ่มพนักงานใหม่</h3>
     <input type="hidden" id="empEditIndex" value="">
+    <input type="hidden" id="empEditBid" value="">
     <div class="mf"><label>ชื่อ-นามสกุล *</label><input type="text" id="eName" placeholder="เช่น สมศรี ใจดี"></div>
     <div class="mf"><label>ชื่อเล่น</label><input type="text" id="eNick" placeholder="เช่น (ศรี)"></div>
     <div class="mf"><label>ตำแหน่ง</label><input type="text" id="ePos" placeholder="BC / BT / แคชเชียร์ ..."></div>
     <div class="mf"><label>เบอร์โทร</label><input type="text" id="ePhone" placeholder="0xx-xxx-xxxx"></div>
     <div class="modal-row">
       <button class="btn btn-ghost" onclick="closeEmpModal()">ยกเลิก</button>
+      <button class="btn btn-danger" id="empDelBtn" onclick="deleteEmployee()" style="display:none">🗑 ลบ</button>
       <button class="btn btn-primary" id="empSaveBtn" onclick="saveEmployee()">เพิ่มพนักงาน</button>
     </div>
   </div>
@@ -2213,9 +2215,11 @@ function closeLeaveModal(){ document.getElementById('leaveOverlay').classList.re
 // ══════════════════════════════════════════
 function openAddEmp(){ 
   ['eName','eNick','ePos','ePhone'].forEach(id=>document.getElementById(id).value=''); 
-  document.getElementById('empEditIndex').value=''; 
+  document.getElementById('empEditIndex').value='';
+  document.getElementById('empEditBid').value='';
   document.getElementById('empModalTitle').textContent='➕ เพิ่มพนักงานใหม่';
   document.getElementById('empSaveBtn').textContent='เพิ่มพนักงาน';
+  document.getElementById('empDelBtn').style.display='none';
   document.getElementById('empOverlay').classList.add('open'); 
 }
 
@@ -2228,8 +2232,10 @@ function openEditEmp(bid, ei){
   document.getElementById('ePos').value = emp.pos||'';
   document.getElementById('ePhone').value = emp.phone||'';
   document.getElementById('empEditIndex').value = ei;
+  document.getElementById('empEditBid').value = bid;
   document.getElementById('empModalTitle').textContent = '✏️ แก้ไขข้อมูลพนักงาน';
   document.getElementById('empSaveBtn').textContent = '💾 บันทึก';
+  document.getElementById('empDelBtn').style.display = '';
   document.getElementById('empOverlay').classList.add('open');
 }
 function saveEmployee(){
@@ -2239,6 +2245,32 @@ function saveEmployee(){
   b.emps.push({name,nick:document.getElementById('eNick').value.trim(),pos:document.getElementById('ePos').value.trim()||'BT',phone:document.getElementById('ePhone').value.trim()||'-',last:'-'});
   closeEmpModal(); render();
 }
+function deleteEmployee(){
+  const ei = parseInt(document.getElementById('empEditIndex').value);
+  const bid = document.getElementById('empEditBid').value || session.branchId;
+  const b = BRANCHES.find(x=>x.id===bid);
+  if(!b||isNaN(ei)) return;
+  const emp = b.emps[ei];
+  if(!confirm(`ต้องการลบ "${emp.name}" ออกจากระบบ?
+
+ข้อมูลการลาของพนักงานคนนี้จะถูกลบด้วย`)) return;
+  // ลบพนักงาน
+  b.emps.splice(ei, 1);
+  // ลบข้อมูลการลาของพนักงานคนนี้ และ reindex
+  const newLeaves = {};
+  Object.keys(b.leaves).forEach(k=>{
+    const idx = parseInt(k);
+    if(idx === ei) return; // ข้ามคนที่ลบ
+    const newIdx = idx > ei ? idx - 1 : idx;
+    newLeaves[newIdx] = b.leaves[k];
+  });
+  b.leaves = newLeaves;
+  closeEmpModal();
+  render();
+  saveToFirebase();
+  showSaveIndicator('🗑️ ลบพนักงานแล้ว');
+}
+
 function closeEmpModal(){ document.getElementById('empOverlay').classList.remove('open'); }
 
 // ══════════════════════════════════════════
