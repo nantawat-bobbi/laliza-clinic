@@ -1390,11 +1390,12 @@ function doLogin(){
     if(data && Array.isArray(data) && data.length > 0){
       BRANCHES = data;
     }
+    cleanDuplicateEmps(); // ล้างข้อมูลซ้ำก่อน
     showLoadingOverlay(false);
     startApp();
   }).catch(e=>{
     showLoadingOverlay(false);
-    startApp(); // ถ้า Firebase มีปัญหา ใช้ข้อมูล default ไปก่อน
+    startApp();
   });
 }
 
@@ -1413,6 +1414,49 @@ function doLogout(){
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('app').classList.remove('visible');
   buildLoginGrid();
+}
+
+function cleanDuplicateEmps(){
+  // ลบ emps ที่ซ้ำกัน (ชื่อ+nick เหมือนกัน) ออกจากทุกสาขา
+  let hasDuplicate = false;
+  BRANCHES.forEach(b=>{
+    b.emps = toArray(b.emps||[]);
+    const seen = new Set();
+    const clean = [];
+    b.emps.forEach(emp=>{
+      if(!emp||!emp.name) return;
+      const key = emp.name.trim()+'|'+(emp.nick||'').trim();
+      if(!seen.has(key)){
+        seen.add(key);
+        clean.push(emp);
+      } else {
+        hasDuplicate = true;
+      }
+    });
+    if(clean.length !== b.emps.length){
+      // reindex leaves
+      const oldIdxMap = {};
+      let newIdx = 0;
+      b.emps.forEach((emp,oi)=>{
+        if(!emp||!emp.name) return;
+        const key = emp.name.trim()+'|'+(emp.nick||'').trim();
+        // หา index ใน clean
+        const ci = clean.findIndex(e=>e&&e.name.trim()+'|'+(e.nick||'').trim()===key);
+        if(ci>=0) oldIdxMap[oi]=ci;
+      });
+      const newLeaves={};
+      Object.keys(b.leaves||{}).forEach(k=>{
+        const ni = oldIdxMap[parseInt(k)];
+        if(ni!==undefined) newLeaves[ni]=b.leaves[k];
+      });
+      b.emps = clean;
+      b.leaves = newLeaves;
+    }
+  });
+  if(hasDuplicate){
+    console.log('พบข้อมูลซ้ำ กำลังล้าง...');
+    saveToFirebase();
+  }
 }
 
 function startApp(){
@@ -2902,7 +2946,7 @@ loadFromFirebase(()=>{
   startRealtimeSync();
 
   if(_autoLogin){
-    // ตรวจสอบว่า branch ยังอยู่ใน Firebase
+    cleanDuplicateEmps(); // ล้างข้อมูลซ้ำก่อน
     const b = BRANCHES.find(x=>x.id===session.branchId);
     if(b){
       showLoadingOverlay(false);
