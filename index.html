@@ -3202,12 +3202,6 @@ function updateNavForBranch(){
 }
 
 // ══ INIT ══
-// รอ DOM โหลดเสร็จก่อน
-window.addEventListener('DOMContentLoaded', function(){
-  buildLoginGrid();
-});
-
-// เช็ค session ก่อนเลย เพื่อแสดง loading แทน login screen
 const _savedSession = localStorage.getItem('laliza_session');
 let _autoLogin = false;
 if(_savedSession){
@@ -3262,6 +3256,12 @@ loadFromFirebase(()=>{
     } catch(e){}
   }, 60 * 1000);
 });
+// เรียก buildLoginGrid หลัง DOM พร้อม
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', buildLoginGrid);
+} else {
+  buildLoginGrid();
+}
 </script>
 </body>
 </html>
