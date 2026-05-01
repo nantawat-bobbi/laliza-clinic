@@ -2109,8 +2109,10 @@ function render(){
     let r = label ? `<tr class="section-divider"><td colspan="${DAYS.length+2}">${label}</td></tr>` : '';
     emps.forEach(emp=>{
       const ei = b.emps.indexOf(emp);
+      // ใช้ index จาก allEmps โดยตรง (ไม่ findIndex ซ้ำ)
+      const realEi = allEmps.indexOf(emp);
       const editBtn = session.isManager
-        ? `<button onclick="openEditEmp('${b.id}',${ei})" style="margin-left:6px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0 2px;opacity:0.6;transition:opacity 0.15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6" title="แก้ไขข้อมูล">✏️</button>` : '';
+        ? `<button onclick="openEditEmp('${b.id}',${realEi})" style="margin-left:6px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0 2px;opacity:0.6;transition:opacity 0.15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6" title="แก้ไขข้อมูล">✏️</button>` : '';
       r += `<tr><td class="ic"><div class="iname">${emp.name||''} <span class="inick">${emp.nick||''}</span>${editBtn}</div><div class="ipos">${emp.pos||''}</div></td>`;
       r += `<td class="ic"><div class="iph">${emp.phone||'-'}</div><div class="ilast">หยุด: ${emp.last||'-'}</div></td>`;
       DAYS.forEach((day,di)=>{
