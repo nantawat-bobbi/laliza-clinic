@@ -1387,16 +1387,26 @@ function doLogin(){
   let branchId = selectedLoginBranch;
 
   if(pw === ADMIN_PASSWORD){
-    // Admin — เข้าได้ทุกสาขา ไม่ต้องเช็ครหัสสาขา
     isManager = true;
     isAdmin = true;
   } else {
-    // หา branch จาก Firebase หรือ default
     const b = BRANCHES.find(x=>x.id===selectedLoginBranch);
-    if(!b){ showLoginError('ไม่พบข้อมูลสาขา'); return; }
-    if(pw === b.password){
+    // เช็ครหัสจาก Firebase และ default data
+    const managerPw = (b && b.password) || '';
+    const staffPw = (b && b.staffPassword) || '';
+    // หา staffPassword จาก default BRANCHES ในโค้ด (กันกรณี Firebase ไม่มี field นี้)
+    const defaultB = [
+      {id:'b7',p:'847291',s:'8472'},{id:'b8',p:'362058',s:'3620'},
+      {id:'b3',p:'519374',s:'5193'},{id:'b4',p:'728163',s:'7281'},
+      {id:'b5',p:'945612',s:'9456'},{id:'b6',p:'183749',s:'1837'},
+      {id:'b1',p:'637482',s:'6374'},{id:'b2',p:'291856',s:'2918'},
+      {id:'b9',p:'574930',s:'5749'},{id:'b10',p:'463817',s:'4638'},
+    ].find(x=>x.id===selectedLoginBranch);
+    const mgPw = managerPw || (defaultB&&defaultB.p) || '';
+    const stPw = staffPw || (defaultB&&defaultB.s) || '';
+    if(pw === mgPw){
       isManager = true;
-    } else if(pw === (b.staffPassword||'')){
+    } else if(pw === stPw){
       isManager = false;
     } else {
       showLoginError('รหัสผ่านไม่ถูกต้อง'); return;
