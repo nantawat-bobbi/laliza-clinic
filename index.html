@@ -2227,8 +2227,11 @@ function openAddEmp(){
 
 function openEditEmp(bid, ei){
   const b = BRANCHES.find(x=>x.id===bid);
-  if(!b||!b.emps[ei]) return;
+  if(!b) return;
+  // แปลง emps เป็น Array ก่อนเสมอ
+  b.emps = toArray(b.emps || []);
   const emp = b.emps[ei];
+  if(!emp) return;
   document.getElementById('eName').value = emp.name||'';
   document.getElementById('eNick').value = emp.nick||'';
   document.getElementById('ePos').value = emp.pos||'';
@@ -2480,8 +2483,10 @@ document.getElementById('uploadArea').addEventListener('drop',e=>{
 // บันทึกข้อมูลสาขาทั้งหมดขึ้น Firebase
 function toArray(val){ 
   if(!val) return [];
-  if(Array.isArray(val)) return val.filter(e=>e&&e.name);
-  return Object.values(val).filter(e=>e&&e.name);
+  if(Array.isArray(val)) return val; // ไม่กรอง เก็บ index ไว้
+  // Firebase Object → Array เรียงตาม key
+  const keys = Object.keys(val).sort((a,b)=>parseInt(a)-parseInt(b));
+  return keys.map(k=>val[k]);
 }
 
 function saveToFirebase(callback){
@@ -2530,14 +2535,12 @@ function parseFirebaseBranches(data){
   } else if(Array.isArray(data)){
     result = data.filter(x=>x);
   }
-  // แปลง emps เป็น Array เสมอ
+  // แปลง emps เป็น Array เสมอ รักษา index ไว้
   result.forEach(b=>{
-    if(b && b.emps && !Array.isArray(b.emps)){
-      b.emps = Object.values(b.emps).filter(e=>e&&e.name);
-    } else if(b && !b.emps){
-      b.emps = [];
+    if(b){
+      b.emps = toArray(b.emps || []);
+      if(!b.leaves) b.leaves = {};
     }
-    if(b && !b.leaves) b.leaves = {};
   });
   return result.length > 0 ? result : null;
 }
