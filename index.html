@@ -1379,18 +1379,27 @@ function selectLoginBranch(id){
 function doLogin(){
   if(!selectedLoginBranch){ showLoginError('กรุณาเลือกสาขาก่อน'); return; }
   const b = BRANCHES.find(x=>x.id===selectedLoginBranch);
-  const pw = document.getElementById('loginPassword').value;
-  if(pw !== '' && pw !== b.password){ showLoginError('รหัสผ่านไม่ถูกต้อง'); return; }
-  session = { branchId: b.id, isManager: true };
+  const pw = document.getElementById('loginPassword').value.trim();
+  if(!pw){ showLoginError('กรุณาใส่รหัสผ่าน'); return; }
+
+  let isManager = false;
+  if(pw === b.password){ 
+    isManager = true; // รหัส Manager
+  } else if(pw === b.staffPassword){ 
+    isManager = false; // รหัส Staff
+  } else { 
+    showLoginError('รหัสผ่านไม่ถูกต้อง'); return; 
+  }
+
+  session = { branchId: b.id, isManager };
+  localStorage.setItem('laliza_session', JSON.stringify({ branchId: b.id, isManager, loginAt: Date.now() }));
   document.getElementById('loginError').style.display = 'none';
-  // โหลดข้อมูลสดจาก Firebase ก่อนแสดงผลเสมอ
   showLoadingOverlay(true);
   db.ref('branches').once('value').then(snap=>{
-    const data = snap.val();
-    if(data && Array.isArray(data) && data.length > 0){
-      BRANCHES = data;
-    }
-    cleanDuplicateEmps(); // ล้างข้อมูลซ้ำก่อน
+    const raw = snap.val();
+    const data = parseFirebaseBranches(raw);
+    if(data && data.length > 0){ BRANCHES = data; }
+    cleanDuplicateEmps();
     showLoadingOverlay(false);
     startApp();
   }).catch(e=>{
