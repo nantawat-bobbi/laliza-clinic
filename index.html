@@ -1379,26 +1379,32 @@ function selectLoginBranch(id){
 
 function doLogin(){
   if(!selectedLoginBranch){ showLoginError('กรุณาเลือกสาขาก่อน'); return; }
-  const b = BRANCHES.find(x=>x.id===selectedLoginBranch);
   const pw = document.getElementById('loginPassword').value.trim();
   if(!pw){ showLoginError('กรุณาใส่รหัสผ่าน'); return; }
 
   let isManager = false;
   let isAdmin = false;
+  let branchId = selectedLoginBranch;
 
   if(pw === ADMIN_PASSWORD){
-    isManager = true; // Admin เข้าได้ทุกสาขา แก้ได้หมด
+    // Admin — เข้าได้ทุกสาขา ไม่ต้องเช็ครหัสสาขา
+    isManager = true;
     isAdmin = true;
-  } else if(pw === b.password){ 
-    isManager = true; // รหัส Manager
-  } else if(pw === b.staffPassword){ 
-    isManager = false; // รหัส Staff
-  } else { 
-    showLoginError('รหัสผ่านไม่ถูกต้อง'); return; 
+  } else {
+    // หา branch จาก Firebase หรือ default
+    const b = BRANCHES.find(x=>x.id===selectedLoginBranch);
+    if(!b){ showLoginError('ไม่พบข้อมูลสาขา'); return; }
+    if(pw === b.password){
+      isManager = true;
+    } else if(pw === (b.staffPassword||'')){
+      isManager = false;
+    } else {
+      showLoginError('รหัสผ่านไม่ถูกต้อง'); return;
+    }
   }
 
-  session = { branchId: b.id, isManager, isAdmin };
-  localStorage.setItem('laliza_session', JSON.stringify({ branchId: b.id, isManager, isAdmin, loginAt: Date.now() }));
+  session = { branchId, isManager, isAdmin };
+  localStorage.setItem('laliza_session', JSON.stringify({ branchId, isManager, isAdmin, loginAt: Date.now() }));
   document.getElementById('loginError').style.display = 'none';
   showLoadingOverlay(true);
   db.ref('branches').once('value').then(snap=>{
