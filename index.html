@@ -1556,6 +1556,15 @@ function cleanDuplicateEmps(){
 }
 
 function startApp(){
+  // ตรวจสอบ isAdmin จาก localStorage ใหม่ทุกครั้ง
+  try {
+    const sv = localStorage.getItem('laliza_session');
+    if(sv){
+      const s = JSON.parse(sv);
+      session.isAdmin = s.isAdmin || false;
+      session.isManager = s.isManager || false;
+    }
+  } catch(e){}
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').classList.add('visible');
   const b = BRANCHES.find(x=>x.id===session.branchId);
@@ -2101,9 +2110,10 @@ function loadHolidaysFromFirebase(cb){
     if(data && typeof data === 'object' && Object.keys(data).length > 0){
       HOLIDAYS = data;
     } else {
-      // ยังไม่มีใน Firebase → push default ขึ้นไป
       saveHolidaysToFirebase();
     }
+    // re-render ตารางทุกครั้งที่โหลด holidays เสร็จ
+    if(session.branchId) render();
     if(cb) cb();
   }).catch(e=>{ if(cb) cb(); });
 }
