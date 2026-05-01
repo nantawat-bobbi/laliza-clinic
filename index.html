@@ -103,8 +103,8 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
 /* ════════════════════════════════
    APP SHELL
 ════════════════════════════════ */
-.app{display:none;height:100vh;height:100dvh;overflow:hidden;}
-.app.visible{display:flex;overflow:hidden;}
+.app{display:none;}
+.app.visible{display:flex;height:100vh;height:100dvh;overflow:hidden;}
 
 /* SIDEBAR */
 .sidebar{
@@ -618,14 +618,28 @@ td.ic .ilast{font-size:11px;color:var(--green);}
 @media (max-width: 768px) {
   /* ── Layout ── */
   .sidebar { display: none !important; }
-  .main { 
-    width: 100%; 
-    flex: 1;
-    min-height: 0;
+  
+  .app.visible {
+    height: auto !important;
+    min-height: 100dvh;
+    overflow: visible !important;
+    flex-direction: column;
   }
-  /* ── Scroll — bottom nav สูง 60px เพิ่ม padding ล่าง ── */
+  
+  .main {
+    width: 100%;
+    flex: 1;
+    height: auto;
+    overflow: visible;
+  }
+
+  .topbar { position: sticky; top: 0; z-index: 50; }
+
   .page-content {
-    padding-bottom: 72px !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding-bottom: 80px !important;
+    flex: none !important;
   }
 
   /* ── Login ── */
@@ -864,7 +878,7 @@ td.ic .ilast{font-size:11px;color:var(--green);}
     </div>
 
     <!-- OVERVIEW -->
-    <div id="pageOverview" class="page-content">
+    <div id="pageOverview" class="page-content" style="overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <div class="overview-hero">
         <h2>🏠 ภาพรวมระบบ</h2>
         <p id="overviewDate">—</p>
@@ -941,19 +955,19 @@ td.ic .ilast{font-size:11px;color:var(--green);}
     </div>
 
     <!-- TABLE -->
-    <div id="pageTable" class="page-content" style="display:none;">
+    <div id="pageTable" class="page-content" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <div class="stats-row" id="statsRow"></div>
       <div class="content" id="mainContent"></div>
     </div>
 
     <!-- TABLE ALL BRANCHES -->
-    <div id="pageTableAll" class="page-content" style="display:none;">
+    <div id="pageTableAll" class="page-content" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <div class="stats-row" id="statsRowAll"></div>
       <div class="content" id="mainContentAll"></div>
     </div>
 
     <!-- DASHBOARD -->
-    <div id="pageDashboard" class="page-content" style="display:none;">
+    <div id="pageDashboard" class="page-content" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <div class="dash-hero">
         <h2>📊 Dashboard วันนี้</h2>
         <p id="dashDate">—</p>
@@ -962,7 +976,7 @@ td.ic .ilast{font-size:11px;color:var(--green);}
     </div>
 
     <!-- STATS -->
-    <div id="pageStats" class="page-content" style="display:none;">
+    <div id="pageStats" class="page-content" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <div class="stats-hero">
         <h2>📈 สถิติการลา</h2>
         <p>สรุปการลาแต่ละประเภท รายบุคคล รายสาขา</p>
@@ -971,7 +985,7 @@ td.ic .ilast{font-size:11px;color:var(--green);}
     </div>
 
     <!-- DOCS -->
-    <div id="pageDocs" class="page-content" style="display:none;">
+    <div id="pageDocs" class="page-content" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <div class="docs-hero">
         <h2>📄 เอกสารแนบ</h2>
         <p>อัพโหลดใบรับรองแพทย์ หรือเอกสารการลา</p>
