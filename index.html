@@ -2477,8 +2477,9 @@ document.getElementById('uploadArea').addEventListener('drop',e=>{
 // ══════════════════════════════════════════
 
 // บันทึกข้อมูลสาขาทั้งหมดขึ้น Firebase
+let _isSaving = false;
+
 function saveToFirebase(){
-  // บันทึกแบบ object ใช้ id เป็น key เพื่อป้องกันปัญหา index สลับ
   const data = {};
   BRANCHES.forEach(b=>{
     data[b.id] = {
@@ -2487,13 +2488,21 @@ function saveToFirebase(){
       code: b.code,
       color: b.color,
       password: b.password,
+      staffPassword: b.staffPassword || '',
       emps: b.emps || [],
       leaves: b.leaves || {}
     };
   });
+  _isSaving = true;
   db.ref('branches').set(data)
-    .then(()=>showSaveIndicator('✅ บันทึกแล้ว'))
-    .catch(e=>showSaveIndicator('❌ บันทึกไม่สำเร็จ'));
+    .then(()=>{
+      showSaveIndicator('✅ บันทึกแล้ว');
+      setTimeout(()=>{ _isSaving = false; }, 2000);
+    })
+    .catch(e=>{
+      showSaveIndicator('❌ บันทึกไม่สำเร็จ');
+      _isSaving = false;
+    });
 }
 
 // โหลดข้อมูลจาก Firebase ครั้งเดียวตอน login
@@ -2530,6 +2539,7 @@ function loadFromFirebase(callback){
 // Real-time listener — ซิงค์อัตโนมัติเมื่อมีการเปลี่ยนแปลงจากเครื่องอื่น
 function startRealtimeSync(){
   db.ref('branches').on('value', snap=>{
+    if(_isSaving) return; // ไม่ overwrite ขณะกำลัง save
     const raw = snap.val();
     const data = parseFirebaseBranches(raw);
     if(data && data.length > 0){
