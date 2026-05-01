@@ -1353,7 +1353,8 @@ let BRANCHES=[
 // ══════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════
-let session = { branchId: null, isManager: false };
+const ADMIN_PASSWORD = '16698';
+let session = { branchId: null, isManager: false, isAdmin: false };
 let lms = { bid:null, ei:null, di:null, sel:null, note:'' };
 let selectedLoginBranch = null;
 let DOCUMENTS = JSON.parse(localStorage.getItem('laliza_documents') || '[]');
@@ -1383,7 +1384,12 @@ function doLogin(){
   if(!pw){ showLoginError('กรุณาใส่รหัสผ่าน'); return; }
 
   let isManager = false;
-  if(pw === b.password){ 
+  let isAdmin = false;
+
+  if(pw === ADMIN_PASSWORD){
+    isManager = true; // Admin เข้าได้ทุกสาขา แก้ได้หมด
+    isAdmin = true;
+  } else if(pw === b.password){ 
     isManager = true; // รหัส Manager
   } else if(pw === b.staffPassword){ 
     isManager = false; // รหัส Staff
@@ -1391,8 +1397,8 @@ function doLogin(){
     showLoginError('รหัสผ่านไม่ถูกต้อง'); return; 
   }
 
-  session = { branchId: b.id, isManager };
-  localStorage.setItem('laliza_session', JSON.stringify({ branchId: b.id, isManager, loginAt: Date.now() }));
+  session = { branchId: b.id, isManager, isAdmin };
+  localStorage.setItem('laliza_session', JSON.stringify({ branchId: b.id, isManager, isAdmin, loginAt: Date.now() }));
   document.getElementById('loginError').style.display = 'none';
   showLoadingOverlay(true);
   db.ref('branches').once('value').then(snap=>{
@@ -1477,7 +1483,7 @@ function startApp(){
   document.getElementById('sidebarBranchDot').style.background = b.color;
   document.getElementById('sidebarBranchText').textContent = b.name;
   document.getElementById('userBadgeName').textContent = b.name.length>18 ? b.name.substring(0,16)+'…' : b.name;
-  document.getElementById('userBadgeRole').textContent = session.isManager ? '👑 Manager' : '👁️ ผู้ดู';
+  document.getElementById('userBadgeRole').textContent = session.isAdmin ? '⭐ Admin' : session.isManager ? '👑 Manager' : '👁️ ผู้ดู';
 
   document.getElementById('editNameBtn').style.display = session.isManager ? '' : 'none';
   document.getElementById('changePwBtn').style.display = session.isManager ? '' : 'none';
