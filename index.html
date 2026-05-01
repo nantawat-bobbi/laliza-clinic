@@ -1968,6 +1968,13 @@ function renderMgrLeave(){
 }
 
 // ══ HOLIDAYS MANAGEMENT ══
+let HOLIDAYS = {
+  "13/4": "วันสงกรานต์",
+  "14/4": "วันสงกรานต์",
+  "15/4": "วันสงกรานต์",
+  "1/5": "วันแรงงานแห่งชาติ",
+  "5/5": "วันฉัตรมงคล",
+};
 function renderHolidayList(){
   const list = document.getElementById('holidayList');
   if(!list) return;
