@@ -2003,9 +2003,10 @@ function getHolidayInfo(val){
   return { name: val.name||val, tag: val.tag||'national' };
 }
 function isHoliday(date, month){ 
-  const val = HOLIDAYS[date+'/'+month];
+  const val = HOLIDAYS[String(date)+'/'+String(month)];
   if(!val) return null;
-  return getHolidayInfo(val).name;
+  if(typeof val === 'string') return val;
+  return val.name || null;
 }
 function renderHolidayList(){
   const list = document.getElementById('holidayList');
@@ -3158,7 +3159,7 @@ if(_savedSession){
     const _expired = !_s.loginAt || (Date.now() - _s.loginAt) > SESSION_LIMIT;
     if(!_expired && _s.branchId){
       _autoLogin = true;
-      session = { branchId: _s.branchId, isManager: _s.isManager };
+      session = { branchId: _s.branchId, isManager: _s.isManager, isAdmin: _s.isAdmin||false };
       showLoadingOverlay(true); // แสดง loading ทันที ไม่ให้เห็น login
     } else {
       localStorage.removeItem('laliza_session');
