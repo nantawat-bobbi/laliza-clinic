@@ -2534,7 +2534,8 @@ function closeLeaveModal(){ document.getElementById('leaveOverlay').classList.re
 // ADD EMP
 // ══════════════════════════════════════════
 function openAddEmp(){ 
-  ['eName','eNick','ePos','ePhone'].forEach(id=>document.getElementById(id).value=''); 
+  ['eName','eNick','ePhone'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ePos').value=''; 
   document.getElementById('empEditIndex').value='';
   document.getElementById('empEditBid').value='';
   document.getElementById('empModalTitle').textContent='➕ เพิ่มพนักงานใหม่';
@@ -2554,6 +2555,8 @@ function openEditEmp(bid, ei){
   document.getElementById('eNick').value = emp.nick||'';
   document.getElementById('ePos').value = emp.pos||'';
   document.getElementById('ePhone').value = emp.phone||'';
+  // format เบอร์โทรให้ถูกรูปแบบ
+  formatPhone(document.getElementById('ePhone'));
   document.getElementById('empEditIndex').value = ei;
   document.getElementById('empEditBid').value = bid;
   document.getElementById('empModalTitle').textContent = '✏️ แก้ไขข้อมูลพนักงาน';
@@ -2561,9 +2564,24 @@ function openEditEmp(bid, ei){
   document.getElementById('empDelBtn').style.display = '';
   document.getElementById('empOverlay').classList.add('open');
 }
+function formatPhone(el){
+  let v = el.value.replace(/\D/g,'').slice(0,10);
+  if(v.length > 6) v = v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6);
+  else if(v.length > 3) v = v.slice(0,3)+'-'+v.slice(3);
+  el.value = v;
+}
+
 function saveEmployee(){
   const name = document.getElementById('eName').value.trim();
-  if(!name) return alert('กรุณากรอกชื่อ');
+  const nick = document.getElementById('eNick').value.trim();
+  const pos = document.getElementById('ePos').value.trim();
+  const phone = document.getElementById('ePhone').value.trim();
+  const phoneDigits = phone.replace(/\D/g,'');
+
+  if(!name){ alert('กรุณากรอกชื่อ-นามสกุล'); return; }
+  if(!nick){ alert('กรุณากรอกชื่อเล่น'); return; }
+  if(!pos){ alert('กรุณาเลือกตำแหน่ง'); return; }
+  if(phoneDigits.length !== 10){ alert('กรุณากรอกเบอร์โทร 10 หลัก (รูปแบบ 0XX-XXX-XXXX)'); return; }
   const editIdx = document.getElementById('empEditIndex').value;
   const editBid = document.getElementById('empEditBid').value;
   const bid = (editIdx !== '' && editBid) ? editBid : session.branchId;
