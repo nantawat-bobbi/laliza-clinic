@@ -233,7 +233,7 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
 }
 
 /* PAGE CONTENT */
-.page-content{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;min-height:0;-webkit-overflow-scrolling:touch;}
+.page-content{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;-webkit-overflow-scrolling:touch;}
 
 /* ════════════════════════════════
    OVERVIEW PAGE
@@ -334,8 +334,55 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
 .sval{font-size:21px;font-weight:800;color:var(--text);margin-top:1px;}
 .ssub{font-size:10px;color:var(--muted);}
 .content{flex:1;overflow:auto;padding:16px 20px;}
-.table-wrapper{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.04);}
-.table-scroll{overflow-x:auto;}
+.table-wrapper{
+  background:var(--s1);border:1px solid var(--border);border-radius:14px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.04);
+  /* NO overflow:hidden — blocks sticky positioning */
+  display:flex;flex-direction:column;min-height:0;
+}
+.table-scroll{
+  overflow:auto; /* both x and y */
+  -webkit-overflow-scrolling:touch;
+  flex:1;min-height:0;
+  border-radius:0 0 14px 14px;
+}
+/* Sticky row 1 — header labels (ชื่อ / เบอร์ / วันที่เดือน) */
+.table-scroll table thead tr:first-child th {
+  position:sticky;top:0;z-index:30;
+  background:var(--s2);
+  box-shadow:0 1px 0 var(--border);
+}
+/* Sticky row 2 — day numbers */
+.table-scroll table thead tr:nth-child(2) th {
+  position:sticky;top:33px;z-index:29;
+  background:var(--s2);
+  box-shadow:0 1px 0 var(--border);
+}
+/* Frozen col 1 — ชื่อ */
+.table-scroll table th:first-child,
+.table-scroll table td:first-child {
+  position:sticky;left:0;z-index:20;
+  background:var(--s1);
+  box-shadow:1px 0 0 var(--border);
+}
+.table-scroll table thead th:first-child {
+  z-index:35;background:var(--s2);
+}
+/* Frozen col 2 — เบอร์ */
+.table-scroll table th:nth-child(2),
+.table-scroll table td:nth-child(2) {
+  position:sticky;left:160px;z-index:19;
+  background:var(--s1);
+  box-shadow:2px 0 4px rgba(0,0,0,0.05);
+}
+.table-scroll table thead th:nth-child(2) {
+  z-index:34;background:var(--s2);
+}
+/* Hover override sticky bg */
+tbody tr:hover td:first-child,
+tbody tr:hover td:nth-child(2) {
+  background:var(--row-hover-bg) !important;
+}
 table{border-collapse:collapse;width:100%;min-width:950px;}
 thead th{background:var(--s2);font-size:11px;text-align:center;border-bottom:2px solid var(--border);font-weight:600;}
 .th-month{padding:12px 14px;color:var(--text);font-size:12px;border-right:6px solid var(--border);}
@@ -1511,14 +1558,21 @@ const TYPES = [
 
 const DAY_NAMES=['อา','จ','อ','พ','พฤ','ศ','ส'];
 const DAYS=[];
+const _TODAY_MIDNIGHT=(()=>{ const d=new Date(); return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime(); })();
 let dRef=new Date(2026,3,26);
 for(let i=0;i<30;i++){
   const dd=new Date(dRef);
+  // midnight local — ป้องกัน timezone drift
+  const midnight=new Date(dd.getFullYear(),dd.getMonth(),dd.getDate()).getTime();
+  const isPast   = midnight < _TODAY_MIDNIGHT;
+  const isToday  = midnight === _TODAY_MIDNIGHT;
+  const isFuture = midnight > _TODAY_MIDNIGHT;
   DAYS.push({
     date:dd.getDate(), month:dd.getMonth()+1, year:dd.getFullYear(),
     dow:dd.getDay(), name:DAY_NAMES[dd.getDay()],
     we:dd.getDay()===0||dd.getDay()===6,
-    ts:dd.getTime() // timestamp สำหรับ max comparison
+    ts:midnight, // midnight local — consistent กับ _TODAY_MIDNIGHT
+    isPast, isToday, isFuture
   });
   dRef.setDate(dRef.getDate()+1);
 }
@@ -3408,9 +3462,7 @@ function render(){
     const sunBorder = day.dow===0 ? 'border-left:2px solid rgba(220,38,38,0.25);' : '';
     const hday = isHoliday(day.date, day.month);
     const hdotTitle = hday ? ` title="🎌 ${hday}"` : '';
-    const todayD = new Date(); todayD.setHours(0,0,0,0);
-    const isToday = day.ts && Math.abs(day.ts - todayD.getTime()) < 86400000;
-    h+=`<th class="${isToday?'today-col':''}" style="${sunBorder}">
+    h+=`<th class="${day.isToday?'today-col':''}" style="${sunBorder}">
       <div class="th-dayname ${day.we?'we':''}">${day.name}</div>
       <div class="th-daynum ${day.we?'we':''} ${hday?'holiday':''}">${day.date}</div>
       <div class="holiday-dot ${hday?'visible':''}"${hdotTitle}></div>
@@ -3500,9 +3552,7 @@ function render(){
         else{tip+=`📅 ${_dateStr}`;}
         const isSun=day.dow===0;
         const isHday=!!_hname;
-        const _todayD=new Date();_todayD.setHours(0,0,0,0);
-        const _isToday=day.ts&&Math.abs(day.ts-_todayD.getTime())<86400000;
-        r += `<td class="dc ${day.we?'wec':''} ${isSun?'sun':''} ${isHday?'holiday-col':''} ${_isToday?'today-col':''} ${locked?'locked':''}" ${locked?'':` onclick="openLeaveModal('${b.id}',${ei},${di})"`} title="${tip}">`;
+        r += `<td class="dc ${day.we?'wec':''} ${isSun?'sun':''} ${isHday?'holiday-col':''} ${day.isToday?'today-col':''} ${day.isPast?'past-col':''} ${locked?'locked':''}" ${locked?'':` onclick="openLeaveModal('${b.id}',${ei},${di})"`} title="${tip}">`;
         if(ld) r += `<div class="ld ${getClass(ld.code)}">${ld.code}</div>`;
         r += `</td>`;
       });
