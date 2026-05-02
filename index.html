@@ -3900,6 +3900,13 @@ function toArray(val){
 }
 
 function saveToFirebase(callback){
+  // Guard: ห้าม push ถ้า BRANCHES ว่างหรือ emps ทั้งหมดว่าง
+  const totalEmps = BRANCHES.reduce((s,b)=>s+toArray(b.emps||[]).length,0);
+  if(BRANCHES.length === 0){
+    console.warn('[Firebase] saveToFirebase blocked — BRANCHES empty');
+    if(callback) callback();
+    return;
+  }
   const data = {};
   BRANCHES.forEach(b=>{
     const emps = toArray(b.emps);
@@ -3958,19 +3965,52 @@ function parseFirebaseBranches(data){
 function loadFromFirebase(callback){
   buildLoginGrid();
   showLoadingOverlay(true);
+
+  // Timeout guard — ถ้า Firebase ไม่ตอบใน 8 วิ ใช้ BRANCHES เดิม
+  let _settled = false;
+  const _timeout = setTimeout(()=>{
+    if(_settled) return;
+    _settled = true;
+    console.warn('[Firebase] load timeout — using cached BRANCHES');
+    showLoadingOverlay(false);
+    buildLoginGrid();
+    if(callback) callback();
+  }, 8000);
+
   db.ref('branches').once('value').then(snap=>{
+    if(_settled) return; // timeout แล้ว ไม่ทำอะไร
+    _settled = true;
+    clearTimeout(_timeout);
+
     const raw = snap.val();
     const data = parseFirebaseBranches(raw);
+
     if(data && data.length > 0){
+      // ✅ มีข้อมูลจริง — update BRANCHES
+      // แต่ต้อง merge leaves เดิมที่ยังไม่ sync ด้วย (safety)
       BRANCHES = data;
-    } else {
+      BRANCHES.forEach(b=>{
+        b.emps = toArray(b.emps||[]);
+        if(!b.leaves) b.leaves = {};
+      });
+    } else if(raw === null){
+      // Firebase ว่างจริง (ครั้งแรก) → push default
+      console.log('[Firebase] empty DB — pushing defaults');
       saveToFirebase();
+    } else {
+      // raw มีค่าแต่ parse ไม่ได้ → ห้าม overwrite
+      console.warn('[Firebase] parse failed — keeping existing BRANCHES');
     }
+
     showLoadingOverlay(false);
     buildLoginGrid();
     if(callback) callback();
   }).catch(e=>{
-    console.error('Firebase load error:', e);
+    if(_settled) return;
+    _settled = true;
+    clearTimeout(_timeout);
+    console.error('[Firebase] load error:', e);
+    // ❌ error → ใช้ BRANCHES เดิม ห้าม saveToFirebase
     showLoadingOverlay(false);
     buildLoginGrid();
     if(callback) callback();
