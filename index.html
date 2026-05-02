@@ -3718,6 +3718,36 @@ scrollHTML += `</div>`;
     });
   }
 
+// 🔥 GROUP EMPLOYEES (วางตรงนี้ ก่อน rows(...))
+
+const mgr = [];
+const bc = [];
+const bt = [];
+const hk = [];
+const other = [];
+const suspended = [];
+
+allEmps.forEach(emp => {
+  const pos = (emp.pos || '').trim();
+
+  if (['Branch Manager','Manager','ผู้จัดการ','ผจก.'].includes(pos)) {
+    mgr.push(emp);
+  } else if (['BC','แคชเชียร์','Cashier'].includes(pos)) {
+    bc.push(emp);
+  } else if (['BT','หัวหน้า BT','หัวหน้าBT'].includes(pos)) {
+    bt.push(emp);
+  } else if (pos === 'แม่บ้าน') {
+    hk.push(emp);
+  } else if (['พักงาน','ยังไม่เริ่มงาน'].includes(pos)) {
+    suspended.push(emp);
+  } else {
+    other.push(emp);
+  }
+});
+
+// 🔍 debug
+console.log("mgr:", mgr.length, "bc:", bc.length, "bt:", bt.length);
+
 rows(mgr,'👑 ผู้จัดการ');
 rows(bc,'💼 BC / แคชเชียร์');
 rows(bt,'✂️ BT');
