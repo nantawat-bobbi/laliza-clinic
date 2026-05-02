@@ -334,62 +334,174 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
 .sval{font-size:21px;font-weight:800;color:var(--text);margin-top:1px;}
 .ssub{font-size:10px;color:var(--muted);}
 .content{flex:1;overflow:auto;padding:16px 20px;}
-.table-wrapper{
-  background:var(--s1);
-  border:1px solid var(--border);
-  border-radius:14px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.04);
-  display:flex;flex-direction:column;
-  /* NO overflow:hidden — ไม่งั้น sticky ไม่ทำงาน */
-  overflow:visible;
-  min-height:0;
-}
-.table-scroll{
-  overflow:auto;
-  -webkit-overflow-scrolling:touch;
-  flex:1;min-height:0;
-  max-height:calc(100vh - 220px);
-  border-radius:0 0 14px 14px;
+/* ── Flex Table Layout — fixed left + scrollable calendar ── */
+.table-wrapper {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
-/* ── Sticky header row 1 (ชื่อ / เบอร์ / เดือน) ── */
-.table-scroll table { border-collapse:separate; border-spacing:0; }
-.table-scroll thead tr:first-child th {
-  position:sticky; top:0; z-index:30;
-  background:#f8fafc;
-  border-bottom:1px solid var(--border);
-  box-shadow:0 2px 4px rgba(0,0,0,0.06);
+/* Header row */
+.cal-header {
+  display: flex;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
 }
-/* ── Sticky date row 2 ── */
-.table-scroll thead tr:nth-child(2) th {
-  position:sticky; top:38px; z-index:29;
-  background:#f8fafc;
-  border-bottom:2px solid var(--border);
+/* Sub-header (day numbers) */
+.cal-subheader {
+  display: flex;
+  flex-shrink: 0;
+  position: sticky;
+  top: 42px;
+  z-index: 29;
+  background: #f8fafc;
+  border-bottom: 2px solid var(--border);
 }
 
-/* ── Frozen col 1 — ชื่อพนักงาน ── */
-.table-scroll th:first-child,
-.table-scroll td:first-child {
-  position:sticky; left:0; z-index:20;
-  background:var(--s1);
-  box-shadow:1px 0 3px rgba(0,0,0,0.07);
-  min-width:var(--col-name); width:var(--col-name);
+/* Body scroll container */
+.cal-body {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
 }
-.table-scroll thead th:first-child { z-index:35; background:#f8fafc; }
 
-/* ── Frozen col 2 — เบอร์/หยุดล่าสุด ── */
-.table-scroll th:nth-child(2),
-.table-scroll td:nth-child(2) {
-  position:sticky; left:var(--col-name); z-index:19;
-  background:var(--s1);
-  box-shadow:2px 0 5px rgba(0,0,0,0.06);
-  min-width:var(--col-info); width:var(--col-info);
+/* Each row = flex */
+.cal-row {
+  display: flex;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.1s;
 }
-.table-scroll thead th:nth-child(2) { z-index:34; background:#f8fafc; }
+.cal-row:hover { background: var(--row-hover-bg); }
+.cal-row:hover .cal-left { background: var(--row-hover-bg); }
 
-/* Hover — override frozen col bg */
-tbody tr:hover td:first-child,
-tbody tr:hover td:nth-child(2) { background:var(--row-hover-bg) !important; }
+/* Section divider */
+.cal-section {
+  display: flex;
+  background: #e0f2fe;
+  border-bottom: 1px solid #bae6fd;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0369a1;
+  letter-spacing: 0.3px;
+}
+
+/* Fixed left — ชื่อ + เบอร์ */
+.cal-left {
+  display: flex;
+  flex-shrink: 0;
+  width: var(--col-left, 280px);
+  background: var(--s1);
+  border-right: 2px solid var(--border);
+  box-shadow: 2px 0 6px rgba(0,0,0,0.06);
+  position: sticky;
+  left: 0;
+  z-index: 10;
+}
+.cal-left-name {
+  flex: 1;
+  padding: 8px 10px;
+  border-right: 1px solid var(--border);
+  min-width: 0;
+}
+.cal-left-info {
+  width: var(--col-info, 110px);
+  flex-shrink: 0;
+  padding: 8px 10px;
+}
+
+/* Scrollable calendar right */
+.cal-right {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+}
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(30, var(--col-day, 28px));
+}
+/* Header left fixed cells */
+.cal-hdr-left {
+  width: var(--col-left, 280px);
+  flex-shrink: 0;
+  background: #f8fafc;
+  border-right: 2px solid var(--border);
+  display: flex;
+}
+.cal-hdr-name {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  border-right: 1px solid var(--border);
+}
+.cal-hdr-info {
+  width: var(--col-info, 110px);
+  flex-shrink: 0;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+}
+/* Calendar header right */
+.cal-hdr-right {
+  flex: 1;
+  overflow: hidden;
+}
+.cal-month-row {
+  display: grid;
+  grid-template-columns: repeat(30, var(--col-day, 28px));
+  background: #f8fafc;
+}
+.cal-month-cell {
+  padding: 4px 2px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #475569;
+  text-align: center;
+  border-right: 1px solid var(--border);
+}
+.cal-day-cell {
+  width: var(--col-day, 28px);
+  padding: 3px 1px;
+  text-align: center;
+  border-right: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 8px;
+  color: #64748b;
+  cursor: pointer;
+  position: relative;
+}
+.cal-day-cell.we    { background: #fdf8f8; }
+.cal-day-cell.sun   { border-left: 2px solid rgba(220,38,38,0.2); }
+.cal-day-cell.today { background: #fffbeb; border-left: 2px solid #f59e0b; border-right: 2px solid #f59e0b; }
+.cal-day-cell.hday  { background: #fffdf0; }
+.cal-day-cell.locked { cursor: default; }
+.cal-day-cell:hover:not(.locked) { background: #eff6ff; }
+.cal-leave-dot {
+  width: calc(var(--col-day, 28px) - 4px);
+  height: 20px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  margin: 1px auto;
+}
 table{border-collapse:collapse;width:100%;min-width:950px;}
 thead th{background:var(--s2);font-size:11px;text-align:center;border-bottom:2px solid var(--border);font-weight:600;}
 .th-month{padding:12px 14px;color:var(--text);font-size:12px;border-right:6px solid var(--border);}
@@ -3514,26 +3626,61 @@ function render(){
   const suspended=allEmps.filter(e=>e&&POS_SPECIAL.includes(e.pos));
   const other=allEmps.filter(e=>e&&!POS_ALL.includes(e.pos));
 
-  let h=`<div class="table-wrapper"><div class="table-scroll"><table><thead>`;
-  const insightLegend = `🔴=วันนี้/เมื่อวาน 🟡=2-3วันที่แล้ว 🟢=4-7วัน ⚪=นานกว่า1สัปดาห์ | ⚠️หยุดถี่=เฉลี่ย>2ครั้ง/สัปดาห์`;
-  h+=`<tr><th class="th-info" style="min-width:150px" rowspan="2">ชื่อ</th><th class="th-info" style="min-width:90px" rowspan="2">เบอร์ / หยุดล่าสุด <span style="font-size:9px;color:var(--muted);font-weight:400;cursor:help;" title="${insightLegend}">ℹ️</span></th>`;
-  h+=`<th class="th-month" colspan="${aprDays.length}">เมษายน</th>`;
-  h+=`<th class="th-month" colspan="${mayDays.length}">พฤษภาคม</th></tr><tr>`;
-  DAYS.forEach(day=>{
-    const sunBorder = day.dow===0 ? 'border-left:2px solid rgba(220,38,38,0.25);' : '';
+  const MON_NAMES = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const DOW_NAMES = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+
+  // สร้าง header day cells
+  const dayHeaderCells = DAYS.map(day=>{
     const hday = isHoliday(day.date, day.month);
+    const cls = [
+      'cal-day-cell',
+      day.we ? 'we' : '',
+      day.dow===0 ? 'sun' : '',
+      day.isToday ? 'today' : '',
+      hday ? 'hday' : '',
+    ].filter(Boolean).join(' ');
     const hdotTitle = hday ? ` title="🎌 ${hday}"` : '';
-    h+=`<th class="${day.isToday?'today-col':''}" style="${sunBorder}">
-      <div class="th-dayname ${day.we?'we':''}">${day.name}</div>
-      <div class="th-daynum ${day.we?'we':''} ${hday?'holiday':''}">${day.date}</div>
-      <div class="holiday-dot ${hday?'visible':''}"${hdotTitle}></div>
-    </th>`;
-  });
-  h+=`</tr></thead><tbody>`;
+    return `<div class="${cls}"${hdotTitle}>
+      <div style="font-size:8px;color:${day.we?'#e11d48':'#64748b'}">${DOW_NAMES[day.dow]}</div>
+      <div style="font-size:9px;font-weight:700;color:${day.isToday?'#d97706':day.we?'#e11d48':'#374151'}">${day.date}</div>
+      ${hday?'<div style="font-size:7px;color:#f59e0b">🎌</div>':'<div style="height:10px"></div>'}
+    </div>`;
+  }).join('');
+
+  // month spans
+  const aprCount = DAYS.filter(d=>d.month===4).length;
+  const mayCount = DAYS.filter(d=>d.month===5).length;
+
+  let h = `<div class="table-wrapper">
+    <!-- Header -->
+    <div class="cal-header">
+      <div class="cal-hdr-left">
+        <div class="cal-hdr-name">ชื่อพนักงาน</div>
+        <div class="cal-hdr-info">เบอร์ / หยุดล่าสุด</div>
+      </div>
+      <div class="cal-hdr-right">
+        <div class="cal-month-row">
+          ${DAYS.map((d,i)=>{
+            if(d.month===4 && (i===0 || DAYS[i-1].month!==4))
+              return `<div class="cal-month-cell" style="grid-column:span ${aprCount};background:#eef2ff;color:#3730a3;">เมษายน</div>`;
+            if(d.month===5 && (i===0 || DAYS[i-1].month!==5))
+              return `<div class="cal-month-cell" style="grid-column:span ${mayCount};background:#f0fdf4;color:#166534;">พฤษภาคม</div>`;
+            return '';
+          }).join('')}
+        </div>
+      </div>
+    </div>
+    <!-- Sub-header (day numbers) -->
+    <div class="cal-subheader">
+      <div class="cal-hdr-left" style="visibility:hidden;"></div>
+      <div class="cal-hdr-right"><div class="cal-grid">${dayHeaderCells}</div></div>
+    </div>
+    <!-- Body -->
+    <div class="cal-body">`;
 
   function rows(emps,label){
     if(!emps.length) return '';
-    let r = label ? `<tr class="section-divider"><td colspan="${DAYS.length+2}">${label}</td></tr>` : '';
+    let r = label ? `<div class="cal-section">${label}</div>` : '';
     emps.forEach(emp=>{
       const realEi = allEmps.indexOf(emp);
       const ei = realEi;
@@ -3564,7 +3711,13 @@ function render(){
         if(['พักงาน','ยังไม่เริ่มงาน'].includes(pos)) return 'pause';
         return 'other';
       })(emp.pos||'');
-      r += `<tr><td class="ic"><div class="iname" ${nameClickable}>${emp.name||''} <span class="inick">${emp.nick||''}</span>${editBtn}</div><div class="ipos" data-role="${_posRole}">${emp.pos||''}</div>${balBadge}${emp.note?`<div style="font-size:10px;color:var(--muted);margin-top:1px">📝 ${emp.note}</div>`:''}</td>`;
+      r += `<div class="cal-row"><div class="cal-left">
+        <div class="cal-left-name">
+          <div class="iname" ${nameClickable}>${emp.name||''} <span class="inick">${emp.nick||''}</span>${editBtn}</div>
+          <div class="ipos" data-role="${_posRole}">${emp.pos||''}</div>
+          ${balBadge}
+          ${emp.note?`<div style="font-size:10px;color:var(--muted);margin-top:1px">📝 ${emp.note}</div>`:''}
+        </div>`;
       // หาวันหยุดล่าสุด — ใช้ getLastLeaveInfo (single dataset, consistent)
       const _bl = b.leaves||{};
       const empLeaves = _bl[ei]||_bl[String(ei)]||{};
@@ -3587,7 +3740,8 @@ function render(){
           </div>
         </div>`;
       }
-      r += `<td class="ic"><div class="iph">${emp.phone||'-'}</div>${leaveInfo}</td>`;
+      r += `<div class="cal-left-info"><div class="iph">${emp.phone||'-'}</div>${leaveInfo}</div></div>`;
+      r += `<div class="cal-right"><div class="cal-grid">`;
       DAYS.forEach((day,di)=>{
         const ld = getLeaveData(b.leaves,ei,di);
         const locked = !(session.isManager||session.isAdmin);
@@ -3607,7 +3761,7 @@ function render(){
         if(ld) r += `<div class="ld ${getClass(ld.code)}">${ld.code}</div>`;
         r += `</td>`;
       });
-      r += `</tr>`;
+      r += `</div></div></div>`;
     });
     return r;
   }
