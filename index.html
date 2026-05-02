@@ -1765,11 +1765,14 @@ function startApp(){
   document.getElementById('userBadgeName').textContent = b.name.length>18 ? b.name.substring(0,16)+'…' : b.name;
   document.getElementById('userBadgeRole').textContent = session.isAdmin ? '⭐ Admin' : session.isManager ? '👑 Manager' : '👁️ ผู้ดู';
 
-  document.getElementById('editNameBtn').style.display = session.isManager ? '' : 'none';
-  document.getElementById('changePwBtn').style.display = session.isManager ? '' : 'none';
-  document.getElementById('addEmpBtn').style.display = session.isManager ? '' : 'none';
-  document.getElementById('exportBtn').style.display = (session.isManager || session.isAdmin) ? '' : 'none';
-  document.getElementById('readonlyBanner').style.display = session.isManager ? 'none' : 'flex';
+  ['editNameBtn','changePwBtn','addEmpBtn'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.style.display = session.isManager ? '' : 'none';
+  });
+  const _expBtn = document.getElementById('exportBtn');
+  if(_expBtn) _expBtn.style.display = (session.isManager || session.isAdmin) ? '' : 'none';
+  const _roBanner = document.getElementById('readonlyBanner');
+  if(_roBanner) _roBanner.style.display = session.isManager ? 'none' : 'flex';
 
   updateNavForBranch();
   if(isHRBranch()){
@@ -2895,31 +2898,40 @@ function renderLeaveTypeSummary(){
   const emps = Array.isArray(b.emps) ? b.emps : Object.values(b.emps||{});
   const bLeaves = b.leaves || {};
 
-  // นับแต่ละประเภท + เก็บชื่อคนลา
+  // นับแต่ละประเภท + เก็บชื่อคนลา (แยก X ออก)
   const byType = {};
-  TYPES.forEach(t=>{ byType[t.code]={count:0, people:[]}; });
+  TYPES.filter(t=>t.code!=='X').forEach(t=>{ byType[t.code]={count:0, people:[]}; });
+  let xCount = 0, xPeople = [];
 
   emps.forEach((emp,ei)=>{
     if(!emp) return;
     const empLeaves = bLeaves[ei] || bLeaves[String(ei)] || {};
-    const daysMap = {}; // นับวันลาของแต่ละประเภทสำหรับคนนี้
+    const daysMap = {};
     Object.values(empLeaves).forEach(v=>{
       const code = typeof v==='string' ? v : (v&&v.code);
-      if(code && byType[code]!==undefined){
+      if(!code) return;
+      if(code==='X'){
+        xCount++;
+        if(!daysMap['X']) daysMap['X']=0;
+        daysMap['X']++;
+      } else if(byType[code]!==undefined){
         byType[code].count++;
         if(!daysMap[code]) daysMap[code]=0;
         daysMap[code]++;
       }
     });
-    // เพิ่มชื่อคนในแต่ละประเภท (ไม่ซ้ำ)
     Object.keys(daysMap).forEach(code=>{
       const displayName = `${emp.name||''} ${emp.nick||''}`.trim();
-      byType[code].people.push(`${displayName} (${daysMap[code]} วัน)`);
+      if(code==='X'){
+        xPeople.push(`${displayName} (${daysMap[code]}/${MAX_DAY_OFF} วัน)`);
+      } else if(byType[code]){
+        byType[code].people.push(`${displayName} (${daysMap[code]} วัน)`);
+      }
     });
   });
 
   const total = Object.values(byType).reduce((s,v)=>s+v.count,0);
-  if(total===0){
+  if(total===0 && xCount===0){
     grid.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:10px 0">ยังไม่มีการลาเดือนนี้ 🎉</div>';
     return;
   }
