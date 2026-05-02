@@ -1,1 +1,36 @@
+laliza-clinic/:1 [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) <input type=​"password" id=​"loginPassword" placeholder=​"รหัสผ่าน 6 หลัก" onkeydown=​"if(event.key==='Enter')​doLogin()​">​
+laliza-clinic/:1 [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) <input type=​"password" id=​"pwCurrent" placeholder=​"รหัสเดิม">​
+laliza-clinic/:1 [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) <input type=​"password" id=​"pwNew" placeholder=​"รหัสใหม่ (อย่างน้อย 4 ตัว)​" oninput=​"checkPwStrength()​">​
+laliza-clinic/:1 [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) <input type=​"password" id=​"pwConfirm" placeholder=​"พิมพ์ซ้ำ">​
+laliza-clinic/:4243 App ready
+Object.keys(BRANCHES.find(x=>x.id===session.branchId).leaves||{}).slice(0,5)
+(5) ['0', '1', '2', '3', '4']0: "0"1: "1"2: "2"3: "3"4: "4"length: 5[[Prototype]]: Array(0)
+render()
+undefined
+document.getElementById('mainContent').innerHTML.length
+20113
+document.getElementById('pageTable').style.display
+'flex'
+document.getElementById('mainContent').children[0]
+<div class=​"table-wrapper">​flex<!-- Header --><div class=​"cal-header">​…​</div>​flex<!-- Sub-header (day numbers) --><div class=​"cal-subheader">​…​</div>​flex<!-- Body --><div class=​"cal-body">​…​</div>​</div>​
+document.querySelector('.cal-body').scrollHeight
+1005
+document.querySelector('.table-wrapper').getBoundingClientRect()
+DOMRect {x: 240, y: 180.9375, width: 1001.25, height: 1078.92578125, top: 180.9375, …}bottom: 1259.86328125height: 1078.92578125left: 240right: 1241.25top: 180.9375width: 1001.25x: 240y: 180.9375[[Prototype]]: DOMRect
+document.querySelector('.cal-body').getBoundingClientRect()
+DOMRect {x: 240.625, y: 254.1796875, width: 1000, height: 1005.05859375, top: 254.1796875, …}bottom: 1259.23828125height: 1005.05859375left: 240.625right: 1240.625top: 254.1796875width: 1000x: 240.625y: 254.1796875[[Prototype]]: DOMRect
+`.cal-body` มีขนาด 1005px สูง แต่ `top: 254px` ซึ่งอยู่ในหน้าจอแล้ว แปลว่าข้อมูลอยู่ใน DOM แต่ **สีขาวบนขาว** หรือ **ซ่อนอยู่เพราะ overflow** ค่ะ
+
+พิมพ์ค่ะ:
+
+```javascript
+document.querySelector('.cal-row').getBoundingClientRect()
+```
+VM1577:1 Uncaught SyntaxError: Unexpected identifier 'มีขนาด'
+document.querySelector('.cal-row').getBoundingClientRect()
+DOMRect {x: 240.625, y: 280.29296875, width: 1000, height: 79.12109375, top: 280.29296875, …}bottom: 359.4140625height: 79.12109375left: 240.625right: 1240.625top: 280.29296875width: 1000x: 240.625y: 280.29296875[[Prototype]]: DOMRect
+document.querySelector('.cal-right').getBoundingClientRect()
+DOMRect {x: 520.625, y: 280.29296875, width: 720, height: 78.49609375, top: 280.29296875, …}bottom: 358.7890625height: 78.49609375left: 520.625right: 1240.625top: 280.29296875width: 720x: 520.625y: 280.29296875[[Prototype]]: DOMRect
+document.querySelector('.cal-grid').getBoundingClientRect()
+DOMRect {x: 520.625, y: 223.5546875, width: 720, height: 39.74609375, top: 223.5546875, …}bottom: 263.30078125height: 39.74609375left: 520.625right: 1240.625top: 223.5546875width: 720x: 520.625y: 223.5546875[[Prototype]]: DOMRect
 
