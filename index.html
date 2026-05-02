@@ -2931,18 +2931,27 @@ function getLastLeaveInfo(empLeaves){
     }
   }
 
-  // daysAgo จาก lastDay.ts — ไม่ hardcode year ไม่มี timezone drift
+  // daysAgo — map today explicitly to date, ไม่ infer จาก grid position
   let daysAgo = null;
   if(lastDay && typeof lastDay.ts === 'number'){
-    const now = new Date(); now.setHours(0,0,0,0);
-    daysAgo = Math.round((now.getTime() - lastDay.ts) / (1000*60*60*24));
+    const now = new Date();
+    // normalize ทั้งคู่เป็น midnight local time ป้องกัน timezone drift
+    const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const dayMidnight = new Date(
+      lastDay.year || now.getFullYear(),
+      (lastDay.month || 1) - 1,
+      lastDay.date
+    ).getTime();
+    // คำนวณ diff จาก date จริง ไม่ใช้ ts โดยตรง (ts อาจมี time component)
+    daysAgo = Math.round((nowMidnight - dayMidnight) / (1000*60*60*24));
   }
 
-  // Insight
+  // Insight — daysAgo < 0 = วันในอนาคต (ยังไม่ถึง), = 0 = วันนี้จริง
   let insight = null;
   if(daysAgo !== null){
-    if(daysAgo <= 0)       insight = { text:'หยุดวันนี้',               color:'#dc2626', dot:'#dc2626' };
-    else if(daysAgo === 1) insight = { text:'หยุดเมื่อวาน',             color:'#d97706', dot:'#f59e0b' };
+    if(daysAgo < 0)        insight = { text:'วันที่กำลังจะมา',          color:'#7c3aed', dot:'#a78bfa' };
+    else if(daysAgo === 0) insight = { text:'หยุดวันนี้',               color:'#dc2626', dot:'#dc2626' };
+    else if(daysAgo === 1) insight = { text:'เมื่อวาน',                 color:'#d97706', dot:'#f59e0b' };
     else if(daysAgo <= 3)  insight = { text:`${daysAgo} วันที่แล้ว`,   color:'#d97706', dot:'#f59e0b' };
     else if(daysAgo <= 7)  insight = { text:`${daysAgo} วันที่แล้ว`,   color:'#059669', dot:'#10b981' };
     else                   insight = { text:`${daysAgo} วันที่แล้ว`,   color:'#94a3b8', dot:'#94a3b8' };
@@ -3440,19 +3449,25 @@ function render(){
         leaveInfo = `<div style="font-size:10px;color:var(--muted);margin-top:2px">ยังไม่มีข้อมูล</div>`;
       } else {
         // แสดงวันล่าสุด + insight
-        const insightHTML = insight
-          ? `<span style="display:inline-flex;align-items:center;gap:4px;color:${insight.color};font-weight:600;font-size:11px">
-               <span style="width:6px;height:6px;border-radius:50%;background:${insight.dot};display:inline-block;flex-shrink:0"></span>
-               ${insight.text}
-             </span>`
-          : '';
+        // format: "30 พ.ค. · 2 วันที่แล้ว"
+        const dateShort = lastDay
+          ? `${lastDay.date} ${['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][lastDay.month]}`
+          : '-';
+        const relTime = insight ? insight.text : '';
+        const dotColor = insight ? insight.dot : '#94a3b8';
+        const textColor = insight ? insight.color : '#94a3b8';
+
         const freqBadge = isFrequent
-          ? `<span style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:600;margin-left:4px">หยุดถี่</span>`
+          ? `<span style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:600;">หยุดถี่</span>`
           : '';
-        leaveInfo = `<div style="font-size:10px;margin-top:2px;line-height:1.6">
-          <div style="color:var(--muted)">📅 ${lastDateStr}</div>
-          <div>${insightHTML}${freqBadge}</div>
-          <div style="color:var(--muted)">${leaveCount} ครั้ง</div>
+
+        leaveInfo = `<div style="margin-top:3px;line-height:1.5;">
+          <div style="font-size:12px;font-weight:600;color:var(--text);">📅 ${dateShort}</div>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:1px;">
+            <span style="width:5px;height:5px;border-radius:50%;background:${dotColor};flex-shrink:0;display:inline-block;"></span>
+            <span style="font-size:11px;color:${textColor};font-weight:500;">${relTime}</span>
+            ${freqBadge}
+          </div>
         </div>`;
       }
       r += `<td class="ic"><div class="iph">${emp.phone||'-'}</div>${leaveInfo}</td>`;
