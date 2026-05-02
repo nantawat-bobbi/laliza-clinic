@@ -1776,9 +1776,11 @@ function startApp(){
     switchTab('stats', null);
   } else if(isGlobalBranch()){
     switchTab('overview', null);
+    renderOverview();
   } else {
     switchTab('overview', null);
-    render();
+    renderOverview();
+    render(); // โหลดตารางด้วยเสมอ
   }
 }
 
