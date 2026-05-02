@@ -373,17 +373,17 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
   position:sticky; left:0; z-index:20;
   background:var(--s1);
   box-shadow:1px 0 3px rgba(0,0,0,0.07);
-  min-width:160px; max-width:200px;
+  min-width:var(--col-name); width:var(--col-name);
 }
 .table-scroll thead th:first-child { z-index:35; background:#f8fafc; }
 
 /* ── Frozen col 2 — เบอร์/หยุดล่าสุด ── */
 .table-scroll th:nth-child(2),
 .table-scroll td:nth-child(2) {
-  position:sticky; left:160px; z-index:19;
+  position:sticky; left:var(--col-name); z-index:19;
   background:var(--s1);
   box-shadow:2px 0 5px rgba(0,0,0,0.06);
-  min-width:110px;
+  min-width:var(--col-info); width:var(--col-info);
 }
 .table-scroll thead th:nth-child(2) { z-index:34; background:#f8fafc; }
 
@@ -3568,31 +3568,21 @@ function render(){
       // หาวันหยุดล่าสุด — ใช้ getLastLeaveInfo (single dataset, consistent)
       const _bl = b.leaves||{};
       const empLeaves = _bl[ei]||_bl[String(ei)]||{};
-      const { lastDay, count: leaveCount, insight, isFrequent } = getLastLeaveInfo(empLeaves);
-      const lastDateStr = formatLeaveDate(lastDay);
+      const { lastDay, count: leaveCount, label, isFrequent } = getLastLeaveInfo(empLeaves);
+      const MON_S = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 
       let leaveInfo = '';
-      if(leaveCount === 0){
-        leaveInfo = `<div style="font-size:10px;color:var(--muted);margin-top:2px">ยังไม่มีข้อมูล</div>`;
+      if(leaveCount === 0 || !label || label.type === 'none'){
+        leaveInfo = `<div class="last-past" style="font-size:11px;margin-top:2px;">ยังไม่มีข้อมูล</div>`;
       } else {
-        // แสดงวันล่าสุด + insight
-        // format: "30 พ.ค. · 2 วันที่แล้ว"
-        const dateShort = lastDay
-          ? `${lastDay.date} ${['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][lastDay.month]}`
-          : '-';
-        const relTime = insight ? insight.text : '';
-        const dotColor = insight ? insight.dot : '#94a3b8';
-        const textColor = insight ? insight.color : '#94a3b8';
-
+        const dateShort = lastDay ? `${lastDay.date} ${MON_S[lastDay.month]}` : '-';
         const freqBadge = isFrequent
-          ? `<span style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:600;">หยุดถี่</span>`
+          ? `<span style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:600;margin-left:4px;">หยุดถี่</span>`
           : '';
-
         leaveInfo = `<div style="margin-top:3px;line-height:1.5;">
           <div style="font-size:12px;font-weight:600;color:var(--text);">📅 ${dateShort}</div>
-          <div style="display:flex;align-items:center;gap:4px;margin-top:1px;">
-            <span style="width:5px;height:5px;border-radius:50%;background:${dotColor};flex-shrink:0;display:inline-block;"></span>
-            <span style="font-size:11px;color:${textColor};font-weight:500;">${relTime}</span>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:2px;flex-wrap:wrap;">
+            <span class="last-${label.type}" style="font-size:11px;">${label.text}</span>
             ${freqBadge}
           </div>
         </div>`;
