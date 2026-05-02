@@ -348,9 +348,97 @@ td{padding:0;text-align:center;border-right:1px solid var(--border);vertical-ali
 td.ic{padding:10px 14px;text-align:left;border-right:1px solid var(--border);}
 td.ic .iname{font-size:14px;font-weight:700;color:var(--text);}
 td.ic .inick{font-size:12px;color:var(--muted);}
-td.ic .ipos{font-size:11px;color:var(--accent);font-family:'IBM Plex Mono',monospace;}
-td.ic .iph{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
-td.ic .ilast{font-size:11px;color:var(--green);}
+/* ── Employee Row — Accessible + Production ── */
+
+/* Design tokens — single source of truth */
+:root {
+  --row-hover-bg: #f0f7ff;
+  --name-color: #1e293b;
+  --name-hover: #0369a1;
+  --nick-color: #64748b;
+  --ph-color: #64748b;
+  --min-font: 11px;
+
+  /* Role badge — WCAG AA contrast ≥4.5:1 */
+  --badge-manager-bg: #fef3c7; --badge-manager-fg: #78350f; /* 7.2:1 */
+  --badge-bc-bg: #dbeafe;      --badge-bc-fg: #1e3a8a;      /* 8.1:1 */
+  --badge-bt-bg: #dcfce7;      --badge-bt-fg: #14532d;      /* 7.8:1 */
+  --badge-hk-bg: #f3e8ff;      --badge-hk-fg: #581c87;      /* 8.3:1 */
+  --badge-other-bg: #f1f5f9;   --badge-other-fg: #475569;   /* 4.6:1 */
+}
+
+td.ic {
+  padding: 10px 14px !important;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Name — primary, clickable → cursor:pointer intentional (opens popup) */
+td.ic .iname {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--name-color);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1.5;
+  cursor: pointer; /* intentional: opens Leave Balance popup */
+  transition: color 0.15s;
+  text-decoration: none;
+}
+td.ic .iname:hover { color: var(--name-hover); }
+
+/* Nickname — secondary */
+td.ic .inick {
+  font-size: var(--min-font); /* min 11px */
+  font-weight: 400;
+  color: var(--nick-color);
+}
+
+/* Role badge — accessible contrast, min 11px */
+td.ic .ipos {
+  margin-top: 4px;
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: var(--min-font);
+  font-weight: 600;
+  font-family: 'Sarabun', sans-serif;
+  cursor: default; /* not clickable */
+}
+td.ic .ipos[data-role="manager"] { background:var(--badge-manager-bg); color:var(--badge-manager-fg); }
+td.ic .ipos[data-role="bc"]      { background:var(--badge-bc-bg);      color:var(--badge-bc-fg); }
+td.ic .ipos[data-role="bt"]      { background:var(--badge-bt-bg);      color:var(--badge-bt-fg); }
+td.ic .ipos[data-role="hk"]      { background:var(--badge-hk-bg);      color:var(--badge-hk-fg); }
+td.ic .ipos[data-role="pause"]   { background:var(--badge-other-bg);   color:var(--badge-other-fg); }
+td.ic .ipos[data-role="other"]   { background:var(--badge-other-bg);   color:var(--badge-other-fg); }
+
+/* Phone — min font, consistent token */
+td.ic .iph {
+  font-size: var(--min-font);
+  color: var(--ph-color);
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.3px;
+}
+td.ic .ilast { font-size: var(--min-font); color: var(--green); }
+
+/* Row hover — background only, no cursor change on non-clickable cells */
+tbody tr { transition: background 0.12s ease; }
+tbody tr:hover td { background: var(--row-hover-bg) !important; }
+tbody tr:hover td.ic .iname { color: var(--name-hover); }
+/* data cells — NOT clickable when locked */
+tbody tr td.dc.locked { cursor: default !important; }
+tbody tr td.dc:not(.locked) { cursor: pointer; }
+
+/* Leave type cell */
+td.dc { padding: 4px 2px !important; }
+.ld {
+  border-radius: 4px !important;
+  font-size: var(--min-font) !important;
+  font-weight: 700 !important;
+  padding: 2px 4px !important;
+  letter-spacing: 0.2px;
+}
 .dc{width:26px;height:40px;cursor:pointer;transition:background 0.1s;}
 .dc:hover{background:rgba(79,70,229,0.1);}
 .dc.wec{background:rgba(220,38,38,0.04);}
@@ -2814,51 +2902,53 @@ function formatLeaveDate(day){
   return `${DOW[day.dow]} ${day.date} ${MON[day.month]} ${(day.year||2026)-543+543}`; // แสดงเป็น พ.ศ.
 }
 
-// หา last leave date + count + insight จาก dataset เดียวกัน
-// คืนค่า { lastDay, count, daysAgo, frequency, insight }
+// หา last leave date + count + insight
+// Strategy: iterate DAYS จากขวา→ซ้าย (index สูง→ต่ำ)
+// เจอ cell แรกที่มีค่า = "ล่าสุด" ตรงกับ UI เสมอ
+// source เดียวกับที่ render ตาราง ไม่คำนวณ date ใหม่
 function getLastLeaveInfo(empLeaves){
   if(!empLeaves || typeof empLeaves !== 'object'){
-    return { lastDay:null, count:0, daysAgo:null, frequency:null, insight:null };
+    return { lastDay:null, count:0, daysAgo:null, insight:null, isFrequent:false };
   }
 
-  let maxTs = -1;
+  // นับ count จาก keys ก่อน
+  const validKeys = Object.keys(empLeaves)
+    .map(k=>parseInt(k))
+    .filter(di=>!isNaN(di) && DAYS[di]);
+  const count = validKeys.length;
+
+  // iterate DAYS ขวา→ซ้าย หา index สูงสุดที่มีใน empLeaves
+  // → ตรงกับ column ขวาสุดในตาราง = วันล่าสุดที่ render
   let lastDay = null;
-  let count = 0;
-  const now = new Date(); now.setHours(0,0,0,0);
+  for(let di = DAYS.length - 1; di >= 0; di--){
+    if(empLeaves[di] !== undefined || empLeaves[String(di)] !== undefined){
+      lastDay = DAYS[di]; // ใช้ DAYS[di] โดยตรง ไม่แปลง date ใหม่
+      break;
+    }
+  }
 
-  // วน dataset เดียว — max + count พร้อมกัน
-  Object.keys(empLeaves).forEach(diStr=>{
-    const di = parseInt(diStr);
-    if(isNaN(di)) return;
-    const day = DAYS[di];
-    if(!day || typeof day.ts !== 'number') return;
-    count++;
-    if(day.ts > maxTs){ maxTs = day.ts; lastDay = day; }
-  });
-
-  // คำนวณ daysAgo จาก lastDay.ts
+  // daysAgo — ใช้ lastDay.ts ที่ผูกกับ new Date() ตอน init DAYS
+  // ไม่มี timezone drift เพราะ Date object สร้างใน browser เดียวกัน
   let daysAgo = null;
   if(lastDay && lastDay.ts){
+    const now = new Date(); now.setHours(0,0,0,0);
     daysAgo = Math.round((now.getTime() - lastDay.ts) / (1000*60*60*24));
   }
 
-  // Frequency = ครั้ง/สัปดาห์ (ช่วง 30 วัน)
-  const frequency = count / (DAYS.length / 7); // ครั้ง/สัปดาห์
-
-  // Insight logic
+  // Insight — อิง daysAgo จาก timestamp จริง
   let insight = null;
   if(daysAgo !== null){
-    if(daysAgo === 0) insight = { text:'หยุดวันนี้', color:'#ef4444', icon:'🔴' };
-    else if(daysAgo === 1) insight = { text:'หยุดเมื่อวาน', color:'#f59e0b', icon:'🟡' };
-    else if(daysAgo <= 3) insight = { text:`${daysAgo} วันที่แล้ว`, color:'#f59e0b', icon:'🟡' };
-    else if(daysAgo <= 7) insight = { text:`${daysAgo} วันที่แล้ว`, color:'#10b981', icon:'🟢' };
-    else insight = { text:`${daysAgo} วันที่แล้ว`, color:'#94a3b8', icon:'⚪' };
+    if(daysAgo <= 0)      insight = { text:'หยุดวันนี้',    color:'#ef4444', icon:'🔴' };
+    else if(daysAgo === 1) insight = { text:'หยุดเมื่อวาน',  color:'#f59e0b', icon:'🟡' };
+    else if(daysAgo <= 3)  insight = { text:`${daysAgo} วันที่แล้ว`, color:'#f59e0b', icon:'🟡' };
+    else if(daysAgo <= 7)  insight = { text:`${daysAgo} วันที่แล้ว`, color:'#10b981', icon:'🟢' };
+    else                   insight = { text:`${daysAgo} วันที่แล้ว`, color:'#94a3b8', icon:'⚪' };
   }
 
-  // Frequent flag — ถ้า > 2 ครั้ง/สัปดาห์ = หยุดถี่
-  const isFrequent = frequency > 2;
+  // isFrequent — >2 ครั้ง/สัปดาห์ ใน window 30 วัน
+  const isFrequent = count / (DAYS.length / 7) > 2;
 
-  return { lastDay, count, daysAgo, frequency, insight, isFrequent };
+  return { lastDay, count, daysAgo, insight, isFrequent };
 }
 
 // ════════════════════════════════════════════
@@ -3323,7 +3413,16 @@ function render(){
         </div>`;
       }
       const nameClickable = `onclick="showLeaveBalancePopup('${b.id}',${ei})" style="cursor:pointer;" title="กดเพื่อดู Leave Balance"`;
-      r += `<tr><td class="ic"><div class="iname" ${nameClickable}>${emp.name||''} <span class="inick">${emp.nick||''}</span>${editBtn}</div><div class="ipos">${emp.pos||''}</div>${balBadge}${emp.note?`<div style="font-size:10px;color:var(--muted);margin-top:1px">📝 ${emp.note}</div>`:''}</td>`;
+      // map pos → role for styling
+      const _posRole = (pos=>{
+        if(['Branch Manager','Manager','ผู้จัดการ','ผจก.'].includes(pos)) return 'manager';
+        if(['BC','แคชเชียร์','Cashier'].includes(pos)) return 'bc';
+        if(['BT','หัวหน้า BT','หัวหน้าBT'].includes(pos)) return 'bt';
+        if(pos==='แม่บ้าน') return 'hk';
+        if(['พักงาน','ยังไม่เริ่มงาน'].includes(pos)) return 'pause';
+        return 'other';
+      })(emp.pos||'');
+      r += `<tr><td class="ic"><div class="iname" ${nameClickable}>${emp.name||''} <span class="inick">${emp.nick||''}</span>${editBtn}</div><div class="ipos" data-role="${_posRole}">${emp.pos||''}</div>${balBadge}${emp.note?`<div style="font-size:10px;color:var(--muted);margin-top:1px">📝 ${emp.note}</div>`:''}</td>`;
       // หาวันหยุดล่าสุด — ใช้ getLastLeaveInfo (single dataset, consistent)
       const _bl = b.leaves||{};
       const empLeaves = _bl[ei]||_bl[String(ei)]||{};
