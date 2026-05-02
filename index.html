@@ -381,16 +381,33 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
 .cal-row {
   display: flex;
   width: 100%;
-  min-width: max-content; /* ขยายตาม cal-grid */
   border-bottom: 1px solid #f1f5f9;
   transition: background 0.1s;
 }
-.cal-body {
-  overflow-x: auto !important;
-  overflow-y: auto;
+/* cal-left = fixed width, ไม่ shrink */
+.cal-left {
+  width: 280px !important;
+  min-width: 280px !important;
+  flex-shrink: 0 !important;
 }
-.cal-header, .cal-subheader {
-  min-width: max-content;
+/* cal-right = overflow hidden, flex:1 */
+.cal-right {
+  overflow: hidden !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+/* cal-scroll = scroll container จริง */
+.cal-scroll {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch;
+}
+/* cal-grid = fixed width 840px */
+.cal-grid {
+  display: grid !important;
+  grid-template-columns: repeat(30, 28px) !important;
+  width: 840px !important;
+  min-width: 840px !important;
 }
 .cal-row:hover { background: var(--row-hover-bg); }
 .cal-row:hover .cal-left { background: var(--row-hover-bg); }
@@ -3646,7 +3663,7 @@ function render(){
         <div class="cal-hdr-name">ชื่อพนักงาน</div>
         <div class="cal-hdr-info">เบอร์ / หยุดล่าสุด</div>
       </div>
-      <div class="cal-hdr-right">
+      <div class="cal-hdr-right"><div class="cal-scroll">
         <div class="cal-month-row">
           ${DAYS.map((d,i)=>{
             if(d.month===4 && (i===0 || DAYS[i-1].month!==4))
@@ -3656,12 +3673,12 @@ function render(){
             return '';
           }).join('')}
         </div>
-      </div>
+      </div></div>
     </div>
     <!-- Sub-header (day numbers) -->
     <div class="cal-subheader">
       <div class="cal-hdr-left" style="visibility:hidden;"></div>
-      <div class="cal-hdr-right"><div class="cal-grid">${dayHeaderCells}</div></div>
+      <div class="cal-hdr-right"><div class="cal-scroll"><div class="cal-grid">${dayHeaderCells}</div></div></div>
     </div>
     <!-- Body -->
     <div class="cal-body">`;
@@ -3729,7 +3746,7 @@ function render(){
         </div>`;
       }
       r += `<div class="cal-left-info"><div class="iph">${emp.phone||'-'}</div>${leaveInfo}</div></div>`;
-      r += `<div class="cal-right"><div class="cal-grid">`;
+      r += `<div class="cal-right"><div class="cal-scroll"><div class="cal-grid">`;
       DAYS.forEach((day,di)=>{
         const ld = getLeaveData(b.leaves,ei,di);
         const locked = !(session.isManager||session.isAdmin);
@@ -3749,7 +3766,7 @@ function render(){
         if(ld) r += `<div class="ld ${getClass(ld.code)}">${ld.code}</div>`;
         r += `</td>`;
       });
-      r += `</div></div></div>`;
+      r += `</div></div></div></div>`;
     });
     return r;
   }
