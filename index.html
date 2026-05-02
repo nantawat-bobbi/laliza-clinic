@@ -1564,17 +1564,30 @@ const TYPES = [
 ];
 
 const DAY_NAMES=['อา','จ','อ','พ','พฤ','ศ','ส'];
-// ── Calendar Date Engine ──────────────────────
-// ใช้ Date object จริงทั้งระบบ ไม่มี index-based comparison
+// ════════════════════════════════════════════
+// CALENDAR ENGINE — Single Source of Truth
+// All date logic uses Date objects only
+// No index comparison, no day-number assumption
+// ════════════════════════════════════════════
 
-function getDateStatus(dateObj){
+// A. getDateStatus — used everywhere, single impl
+function getDateStatus(date){
   const today = new Date(); today.setHours(0,0,0,0);
-  const d = new Date(dateObj); d.setHours(0,0,0,0);
+  const d = new Date(date); d.setHours(0,0,0,0);
   if(d.getTime() < today.getTime()) return 'past';
   if(d.getTime() === today.getTime()) return 'today';
   return 'future';
 }
 
+// H. Weekend class
+function getWeekendClass(date){
+  const dow = new Date(date).getDay();
+  if(dow===0) return 'bg-sun';
+  if(dow===6) return 'bg-sat';
+  return '';
+}
+
+// A. buildCalendarDates — returns real Date objects
 function buildCalendarDates(startDate, totalDays){
   const dates = [];
   for(let i=0; i<totalDays; i++){
@@ -1583,24 +1596,47 @@ function buildCalendarDates(startDate, totalDays){
     d.setHours(0,0,0,0);
     const status = getDateStatus(d);
     dates.push({
-      dateObj: d,                        // Date object จริง — source of truth
-      date: d.getDate(),
+      dateObj: d,
+      date:  d.getDate(),
       month: d.getMonth()+1,
-      year: d.getFullYear(),
-      ts: d.getTime(),                   // midnight local
-      dow: d.getDay(),
-      name: DAY_NAMES[d.getDay()],
-      we: d.getDay()===0||d.getDay()===6,
+      year:  d.getFullYear(),
+      ts:    d.getTime(),
+      dow:   d.getDay(),
+      name:  DAY_NAMES[d.getDay()],
+      we:    d.getDay()===0 || d.getDay()===6,
+      wkClass: getWeekendClass(d),
+      status,
       isPast:   status==='past',
       isToday:  status==='today',
       isFuture: status==='future',
-      status                             // 'past'|'today'|'future'
     });
   }
   return dates;
 }
 
-const DAYS = buildCalendarDates(new Date(2026,3,26), 30); // 26 Apr 2026, 30 days
+// C. getLastLeaveDate — source เดียวกับ grid
+function getLastLeaveDate(empLeaves, calendarDates){
+  if(!empLeaves || typeof empLeaves !== 'object') return null;
+  const pastOrToday = Object.keys(empLeaves)
+    .map(k => calendarDates[parseInt(k)])
+    .filter(d => d && !d.isFuture); // เฉพาะ past + today
+  if(!pastOrToday.length) return null;
+  // คืน Date object ที่มี ts สูงสุด
+  return pastOrToday.reduce((max, d) => d.ts > max.ts ? d : max);
+}
+
+// D. getLeaveLabel — relative label
+function getLeaveLabel(day){
+  if(!day) return { text:'ยังไม่มีข้อมูล', type:'none' };
+  const status = day.status || getDateStatus(day.dateObj);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((day.ts - today.getTime()) / (1000*60*60*24));
+  if(status==='today') return { text:'วันนี้',            type:'today'  };
+  if(status==='past')  return { text:`${Math.abs(diff)} วันที่แล้ว`, type:'past' };
+  return               { text:`อีก ${diff} วัน`,          type:'future' };
+}
+
+const DAYS = buildCalendarDates(new Date(2026,3,26), 30);
 const aprDays=DAYS.filter(d=>d.month===4);
 const mayDays=DAYS.filter(d=>d.month===5);
 
@@ -3577,7 +3613,7 @@ function render(){
         else{tip+=`📅 ${_dateStr}`;}
         const isSun=day.dow===0;
         const isHday=!!_hname;
-        r += `<td class="dc ${day.we?'wec':''} ${isSun?'sun':''} ${isHday?'holiday-col':''} ${day.isToday?'today-col':''} ${day.isPast?'past-col':''} ${locked?'locked':''}" ${locked?'':` onclick="openLeaveModal('${b.id}',${ei},${di})"`} title="${tip}">`;
+        r += `<td class="dc ${day.wkClass} ${isSun?'sun':''} ${isHday?'holiday-col':''} ${day.isToday?'today-col':''} ${locked?'locked':''}" ${locked?'':` onclick="openLeaveModal('${b.id}',${ei},${di})"`} title="${tip}">`;
         if(ld) r += `<div class="ld ${getClass(ld.code)}">${ld.code}</div>`;
         r += `</td>`;
       });
