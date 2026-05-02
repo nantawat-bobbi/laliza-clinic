@@ -2422,7 +2422,25 @@ function render(){
       const editBtn = session.isManager
         ? `<button onclick="openEditEmp('${b.id}',${realEi})" style="margin-left:6px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0 2px;opacity:0.6;transition:opacity 0.15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6" title="แก้ไขข้อมูล">✏️</button>` : '';
       r += `<tr><td class="ic"><div class="iname">${emp.name||''} <span class="inick">${emp.nick||''}</span>${editBtn}</div><div class="ipos">${emp.pos||''}</div></td>`;
-      r += `<td class="ic"><div class="iph">${emp.phone||'-'}</div><div class="ilast">หยุด: ${emp.last||'-'}</div></td>`;
+      // หาวันหยุดล่าสุดและครั้งที่จากข้อมูลจริง
+      const empLeaves = bLeaves[ei]||bLeaves[String(ei)]||{};
+      const leaveKeys = Object.keys(empLeaves).map(Number).sort((a,b)=>b-a); // เรียงมากไปน้อย
+      let lastDateStr = '-';
+      let leaveCount = Object.keys(empLeaves).length;
+      let totalSlots = DAYS.length;
+      if(leaveKeys.length > 0){
+        const lastDi = leaveKeys[0];
+        const lastDay = DAYS[lastDi];
+        if(lastDay){
+          const DOW_TH=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+          const MONTH_TH=['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+          lastDateStr = `${DOW_TH[lastDay.dow]} ${lastDay.date} ${MONTH_TH[lastDay.month]}`;
+        }
+      }
+      const leaveInfo = leaveKeys.length > 0 
+        ? `<div style="font-size:10px;color:var(--green);margin-top:1px">📅 ${lastDateStr}</div><div style="font-size:10px;color:var(--muted)">ครั้งที่ ${leaveCount}/${totalSlots}</div>`
+        : `<div style="font-size:10px;color:var(--muted)">ยังไม่มีข้อมูล</div>`;
+      r += `<td class="ic"><div class="iph">${emp.phone||'-'}</div>${leaveInfo}</td>`;
       DAYS.forEach((day,di)=>{
         const ld = getLeaveData(b.leaves,ei,di);
         const locked = !session.isManager;
