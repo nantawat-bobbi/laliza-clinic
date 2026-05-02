@@ -3699,15 +3699,12 @@ function render(){
     });
   }
 
-  h += rows(mgr,'👑 ผู้จัดการ');
-  h += rows(bc,'💼 BC / แคชเชียร์');
-  h += rows(bt,'✂️ BT');
-  h += rows(other,'');
-  h += rows(hk,'🧹 แม่บ้าน');
-
-  if(!allEmps.length){
-    h += `<div style="padding:50px;text-align:center;color:var(--muted)">ยังไม่มีพนักงาน กด "+ พนักงาน" ที่ sidebar</div>`;
-  }
+  rows(mgr,'👑 ผู้จัดการ');
+  rows(bc,'💼 BC / แคชเชียร์');
+  rows(bt,'✂️ BT');
+  rows(hk,'🧹 แม่บ้าน');
+  rows(other,'');
+  rows(suspended,'⏸️ พักงาน / ยังไม่เริ่มงาน');
 
   h += `</div></div>`; // end cal-body + table-wrapper
   document.getElementById('mainContent').innerHTML = h;
