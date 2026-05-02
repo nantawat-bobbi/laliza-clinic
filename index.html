@@ -1423,7 +1423,12 @@ const DAYS=[];
 let dRef=new Date(2026,3,26);
 for(let i=0;i<30;i++){
   const dd=new Date(dRef);
-  DAYS.push({date:dd.getDate(),month:dd.getMonth()+1,dow:dd.getDay(),name:DAY_NAMES[dd.getDay()],we:dd.getDay()===0||dd.getDay()===6});
+  DAYS.push({
+    date:dd.getDate(), month:dd.getMonth()+1, year:dd.getFullYear(),
+    dow:dd.getDay(), name:DAY_NAMES[dd.getDay()],
+    we:dd.getDay()===0||dd.getDay()===6,
+    ts:dd.getTime() // timestamp สำหรับ max comparison
+  });
   dRef.setDate(dRef.getDate()+1);
 }
 const aprDays=DAYS.filter(d=>d.month===4);
@@ -2798,6 +2803,65 @@ function exportPDF(){
 }
 
 // ════════════════════════════════════════════
+// DATE UTILITIES — single source of truth
+// ════════════════════════════════════════════
+
+// Format วันที่จาก DAYS object — consistent ทั้งระบบ
+function formatLeaveDate(day){
+  if(!day) return '-';
+  const DOW = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+  const MON = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return `${DOW[day.dow]} ${day.date} ${MON[day.month]} ${(day.year||2026)-543+543}`; // แสดงเป็น พ.ศ.
+}
+
+// หา last leave date + count + insight จาก dataset เดียวกัน
+// คืนค่า { lastDay, count, daysAgo, frequency, insight }
+function getLastLeaveInfo(empLeaves){
+  if(!empLeaves || typeof empLeaves !== 'object'){
+    return { lastDay:null, count:0, daysAgo:null, frequency:null, insight:null };
+  }
+
+  let maxTs = -1;
+  let lastDay = null;
+  let count = 0;
+  const now = new Date(); now.setHours(0,0,0,0);
+
+  // วน dataset เดียว — max + count พร้อมกัน
+  Object.keys(empLeaves).forEach(diStr=>{
+    const di = parseInt(diStr);
+    if(isNaN(di)) return;
+    const day = DAYS[di];
+    if(!day || typeof day.ts !== 'number') return;
+    count++;
+    if(day.ts > maxTs){ maxTs = day.ts; lastDay = day; }
+  });
+
+  // คำนวณ daysAgo จาก lastDay.ts
+  let daysAgo = null;
+  if(lastDay && lastDay.ts){
+    daysAgo = Math.round((now.getTime() - lastDay.ts) / (1000*60*60*24));
+  }
+
+  // Frequency = ครั้ง/สัปดาห์ (ช่วง 30 วัน)
+  const frequency = count / (DAYS.length / 7); // ครั้ง/สัปดาห์
+
+  // Insight logic
+  let insight = null;
+  if(daysAgo !== null){
+    if(daysAgo === 0) insight = { text:'หยุดวันนี้', color:'#ef4444', icon:'🔴' };
+    else if(daysAgo === 1) insight = { text:'หยุดเมื่อวาน', color:'#f59e0b', icon:'🟡' };
+    else if(daysAgo <= 3) insight = { text:`${daysAgo} วันที่แล้ว`, color:'#f59e0b', icon:'🟡' };
+    else if(daysAgo <= 7) insight = { text:`${daysAgo} วันที่แล้ว`, color:'#10b981', icon:'🟢' };
+    else insight = { text:`${daysAgo} วันที่แล้ว`, color:'#94a3b8', icon:'⚪' };
+  }
+
+  // Frequent flag — ถ้า > 2 ครั้ง/สัปดาห์ = หยุดถี่
+  const isFrequent = frequency > 2;
+
+  return { lastDay, count, daysAgo, frequency, insight, isFrequent };
+}
+
+// ════════════════════════════════════════════
 // LEAVE BALANCE ENGINE — non-breaking addition
 // ════════════════════════════════════════════
 
@@ -3219,7 +3283,8 @@ function render(){
   const other=allEmps.filter(e=>e&&!POS_ALL.includes(e.pos));
 
   let h=`<div class="table-wrapper"><div class="table-scroll"><table><thead>`;
-  h+=`<tr><th class="th-info" style="min-width:150px" rowspan="2">ชื่อ</th><th class="th-info" style="min-width:90px" rowspan="2">เบอร์ / หยุดล่าสุด</th>`;
+  const insightLegend = `🔴=วันนี้/เมื่อวาน 🟡=2-3วันที่แล้ว 🟢=4-7วัน ⚪=นานกว่า1สัปดาห์ | ⚠️หยุดถี่=เฉลี่ย>2ครั้ง/สัปดาห์`;
+  h+=`<tr><th class="th-info" style="min-width:150px" rowspan="2">ชื่อ</th><th class="th-info" style="min-width:90px" rowspan="2">เบอร์ / หยุดล่าสุด <span style="font-size:9px;color:var(--muted);font-weight:400;cursor:help;" title="${insightLegend}">ℹ️</span></th>`;
   h+=`<th class="th-month" colspan="${aprDays.length}">เมษายน</th>`;
   h+=`<th class="th-month" colspan="${mayDays.length}">พฤษภาคม</th></tr><tr>`;
   DAYS.forEach(day=>{
@@ -3259,25 +3324,29 @@ function render(){
       }
       const nameClickable = `onclick="showLeaveBalancePopup('${b.id}',${ei})" style="cursor:pointer;" title="กดเพื่อดู Leave Balance"`;
       r += `<tr><td class="ic"><div class="iname" ${nameClickable}>${emp.name||''} <span class="inick">${emp.nick||''}</span>${editBtn}</div><div class="ipos">${emp.pos||''}</div>${balBadge}${emp.note?`<div style="font-size:10px;color:var(--muted);margin-top:1px">📝 ${emp.note}</div>`:''}</td>`;
-      // หาวันหยุดล่าสุดและครั้งที่จากข้อมูลจริง
+      // หาวันหยุดล่าสุด — ใช้ getLastLeaveInfo (single dataset, consistent)
       const _bl = b.leaves||{};
       const empLeaves = _bl[ei]||_bl[String(ei)]||{};
-      const leaveKeys = Object.keys(empLeaves).map(Number).sort((a,b)=>b-a); // เรียงมากไปน้อย
-      let lastDateStr = '-';
-      let leaveCount = Object.keys(empLeaves).length;
-      let totalSlots = DAYS.length;
-      if(leaveKeys.length > 0){
-        const lastDi = leaveKeys[0];
-        const lastDay = DAYS[lastDi];
-        if(lastDay){
-          const DOW_TH=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
-          const MONTH_TH=['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-          lastDateStr = `${DOW_TH[lastDay.dow]} ${lastDay.date} ${MONTH_TH[lastDay.month]}`;
-        }
+      const { lastDay, count: leaveCount, insight, isFrequent } = getLastLeaveInfo(empLeaves);
+      const lastDateStr = formatLeaveDate(lastDay);
+
+      let leaveInfo = '';
+      if(leaveCount === 0){
+        leaveInfo = `<div style="font-size:10px;color:var(--muted);margin-top:2px">ยังไม่มีข้อมูล</div>`;
+      } else {
+        // แสดงวันล่าสุด + insight
+        const insightHTML = insight
+          ? `<span style="color:${insight.color};font-weight:700">${insight.icon} ${insight.text}</span>`
+          : '';
+        const freqBadge = isFrequent
+          ? `<span style="background:#fee2e2;color:#b91c1c;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:3px">หยุดถี่ ⚠️</span>`
+          : '';
+        leaveInfo = `<div style="font-size:10px;margin-top:2px;line-height:1.6">
+          <div style="color:var(--muted)">📅 ${lastDateStr}</div>
+          <div>${insightHTML}${freqBadge}</div>
+          <div style="color:var(--muted)">${leaveCount} ครั้ง</div>
+        </div>`;
       }
-      const leaveInfo = leaveKeys.length > 0 
-        ? `<div style="font-size:10px;color:var(--green);margin-top:1px">📅 ${lastDateStr}</div><div style="font-size:10px;color:var(--muted)">ครั้งที่ ${leaveCount}/${totalSlots}</div>`
-        : `<div style="font-size:10px;color:var(--muted)">ยังไม่มีข้อมูล</div>`;
       r += `<td class="ic"><div class="iph">${emp.phone||'-'}</div>${leaveInfo}</td>`;
       DAYS.forEach((day,di)=>{
         const ld = getLeaveData(b.leaves,ei,di);
