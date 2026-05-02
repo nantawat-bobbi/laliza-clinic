@@ -3732,22 +3732,12 @@ function render(){
   h += rows(other,'');
   h += rows(hk,'🧹 แม่บ้าน');
 
-  if(!b.emps.length){
-    h += `<tr><td colspan="${DAYS.length+2}" style="padding:50px;text-align:center;color:var(--muted)">ยังไม่มีพนักงาน กด "+ พนักงาน" ที่ sidebar</td></tr>`;
+  if(!allEmps.length){
+    h += `<div style="padding:50px;text-align:center;color:var(--muted)">ยังไม่มีพนักงาน กด "+ พนักงาน" ที่ sidebar</div>`;
   }
 
-  h += `</tbody></table></div>`;
-  h += `<div class="legend">
-    <div class="legend-item"><div class="legend-dot lp">ลป</div>ลาป่วย</div>
-    <div class="legend-item"><div class="legend-dot pr">พร</div>พักร้อน</div>
-    <div class="legend-item"><div class="legend-dot la">ล</div>ลางาน</div>
-    <div class="legend-item"><div class="legend-dot pk">พค</div>พักครึ่งวัน</div>
-    <div class="legend-item"><div class="legend-dot pc">ปช</div>ไปประชุม</div>
-    <div class="legend-item"><div class="legend-dot lk">ลก</div>ลากิจ</div>
-    <div class="legend-item"><div class="legend-dot mt">MT</div>อบรม/Meeting</div>
-    <div class="legend-item"><div class="legend-dot ot">X</div>วันหยุด</div>
-  </div></div>`;
-  document.getElementById('mainContent').innerHTML = h;
+  h += `</div></div>`; // end cal-body + table-wrapper
+  document.getElementById('tableContent').innerHTML = h;
 }
 
 // ══════════════════════════════════════════
