@@ -3718,16 +3718,30 @@ scrollHTML += `</div>`;
     });
   }
 
-  rows(mgr,'👑 ผู้จัดการ');
-  rows(bc,'💼 BC / แคชเชียร์');
-  rows(bt,'✂️ BT');
-  rows(hk,'🧹 แม่บ้าน');
-  rows(other,'');
-  rows(suspended,'⏸️ พักงาน / ยังไม่เริ่มงาน');
+rows(mgr,'👑 ผู้จัดการ');
+rows(bc,'💼 BC / แคชเชียร์');
+rows(bt,'✂️ BT');
+rows(hk,'🧹 แม่บ้าน');
+rows(other,'');
+rows(suspended,'⏸️ พักงาน / ยังไม่เริ่มงาน');
 
-  h += `</div></div>`; // end cal-body + table-wrapper
-  document.getElementById('mainContent').innerHTML = h;
-}
+// inject HTML เข้า h
+h += `
+  <div class="cal-fixed">${fixedHTML}</div>
+  <div class="cal-scroll">${scrollHTML}</div>
+`;
+
+h += `</div></div>`; // ปิด cal-body + wrapper
+
+// 🔥 DEBUG ก่อน render
+console.log("RENDER START");
+console.log("fixed:", fixedHTML.length, "scroll:", scrollHTML.length);
+
+// 🔥 render ครั้งเดียวพอ
+document.getElementById('mainContent').innerHTML = h;
+
+console.log("RENDER DONE");
+
 
 // ══════════════════════════════════════════
 // EDIT BRANCH NAME
