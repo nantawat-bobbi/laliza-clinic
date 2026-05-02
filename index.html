@@ -3677,7 +3677,24 @@ const ei = realEi;
       fixedHTML += `<div class="f-info"><div class="iph">${emp.phone||'-'}</div>${leaveInfo}</div>
       </div>`;
       scrollHTML += `<div class="cal-grid">`;
+scrollHTML += `<div class="cal-grid">`;
 
+let r = ''; // 🔥 ใส่ตรงนี้
+
+DAYS.forEach((day,di)=>{
+  const ld = getLeaveData(b.leaves,ei,di);
+
+  r += `<td class="dc">`;
+
+  if(ld){
+    r += `<div class="ld">${ld.code}</div>`;
+  }
+
+  r += `</td>`;
+});
+
+scrollHTML += `<table><tr>${r}</tr></table>`;
+scrollHTML += `</div>`;
 DAYS.forEach((day, di) => {
   const ld = getLeaveData(b.leaves, ei, di);
   const locked = !(session.isManager || session.isAdmin);
