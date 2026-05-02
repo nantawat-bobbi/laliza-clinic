@@ -1333,6 +1333,10 @@ td.ic .ilast{font-size:11px;color:var(--green);}
     <div class="mf"><label>ตำแหน่ง</label><input type="text" id="ePos" placeholder="BC / BT / แคชเชียร์ ..."></div>
     <div class="mf"><label>เบอร์โทร</label><input type="text" id="ePhone" placeholder="0xx-xxx-xxxx"></div>
     <div class="mf">
+      <label>วันเริ่มงาน <span style="font-size:10px;color:var(--muted)">(ไม่บังคับ — ใช้คำนวณสิทธิ์ลา)</span></label>
+      <input type="date" id="eStartDate" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:10px;font-family:'Sarabun',sans-serif;font-size:14px;outline:none;background:var(--s2);">
+    </div>
+    <div class="mf">
       <label>หมายเหตุ * <span style="font-size:10px;color:var(--muted)">(บังคับใส่)</span></label>
       <input type="text" id="eNote" placeholder="เช่น พนักงานประจำ / ทดลองงาน / ลาออก...">
     </div>
@@ -2793,6 +2797,169 @@ function exportPDF(){
   showSaveIndicator('📄 เปิด PDF Preview แล้ว');
 }
 
+// ════════════════════════════════════════════
+// LEAVE BALANCE ENGINE — non-breaking addition
+// ════════════════════════════════════════════
+
+// คำนวณอายุงาน (ปี) จาก startDate
+function calcTenureYears(startDate){
+  if(!startDate) return null;
+  const start = new Date(startDate);
+  const now = new Date();
+  if(isNaN(start.getTime())) return null;
+  const diff = now - start;
+  return diff / (1000 * 60 * 60 * 24 * 365.25);
+}
+
+// คำนวณสิทธิ์ลาตามกฎหมายแรงงานไทย + policy บริษัท
+function calcLeaveEntitlement(emp){
+  const tenure = calcTenureYears(emp.startDate);
+  if(tenure === null) return null; // ไม่มี startDate
+
+  const tenureYears = tenure;
+  const result = {};
+
+  // ลาพักร้อน (Annual Leave) — มาตรา 30
+  // ≥1 ปี = 6 วัน, <1 ปี = pro-rate
+  if(tenureYears >= 1){
+    result['พร'] = { entitled: 6, paid: 6, label: 'ลาพักร้อน' };
+  } else {
+    const proRate = Math.floor((tenureYears * 6));
+    result['พร'] = { entitled: Math.max(proRate, 0), paid: Math.max(proRate, 0), label: 'ลาพักร้อน (pro-rate)' };
+  }
+
+  // ลาป่วย (Sick Leave) — มาตรา 32
+  // ใช้ได้ตามจริง แต่ paid ≤ 30 วัน/ปี
+  result['ลป'] = { entitled: 999, paid: 30, label: 'ลาป่วย' };
+
+  // ลากิจ (Personal Leave) — ตาม policy
+  result['ลก'] = { entitled: 3, paid: 3, label: 'ลากิจ' };
+
+  // ลางาน (Unpaid Leave)
+  result['ล'] = { entitled: 999, paid: 0, label: 'ลางาน (ไม่ได้รับค่าจ้าง)' };
+
+  // ไปประชุม / อบรม
+  result['ปช'] = { entitled: 999, paid: 999, label: 'ไปประชุม' };
+  result['MT'] = { entitled: 999, paid: 999, label: 'อบรม' };
+
+  // พักครึ่งวัน
+  result['พค'] = { entitled: 999, paid: 999, label: 'พักครึ่งวัน' };
+
+  return result;
+}
+
+// นับวันลาจริงที่ใช้ไปแล้ว (จาก leaves data)
+function countLeaveUsed(empLeaves){
+  const used = {};
+  Object.values(empLeaves||{}).forEach(v=>{
+    const code = typeof v==='string' ? v : (v&&v.code);
+    if(code && code !== 'X'){
+      used[code] = (used[code]||0) + 1;
+    }
+  });
+  return used;
+}
+
+// คำนวณ Leave Balance สำหรับพนักงาน 1 คน
+function getLeaveBalance(emp, empLeaves){
+  const entitlement = calcLeaveEntitlement(emp);
+  if(!entitlement) return null;
+  const used = countLeaveUsed(empLeaves);
+  const balance = {};
+  Object.keys(entitlement).forEach(code=>{
+    const ent = entitlement[code];
+    const usedCount = used[code]||0;
+    const remaining = ent.entitled === 999 ? null : Math.max(ent.entitled - usedCount, 0);
+    const paidUsed = Math.min(usedCount, ent.paid);
+    const unpaidUsed = Math.max(usedCount - ent.paid, 0);
+    balance[code] = {
+      ...ent,
+      used: usedCount,
+      remaining,
+      paidUsed,
+      unpaidUsed
+    };
+  });
+  return balance;
+}
+
+// แสดง Leave Balance Popup
+function showLeaveBalancePopup(bid, ei){
+  const b = BRANCHES.find(x=>x.id===bid);
+  if(!b) return;
+  const emps = toArray(b.emps||[]);
+  const emp = emps[ei];
+  if(!emp) return;
+  const empLeaves = (b.leaves||{})[ei]||(b.leaves||{})[String(ei)]||{};
+  const balance = getLeaveBalance(emp, empLeaves);
+  const tenure = calcTenureYears(emp.startDate);
+
+  const MONTH_TH=['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const startD = emp.startDate ? new Date(emp.startDate) : null;
+  const startStr = startD ? `${startD.getDate()} ${MONTH_TH[startD.getMonth()+1]} ${startD.getFullYear()+543}` : 'ไม่ระบุ';
+  const tenureStr = tenure !== null ? `${Math.floor(tenure)} ปี ${Math.floor((tenure%1)*12)} เดือน` : 'ไม่ทราบ';
+
+  let balanceHTML = '';
+  if(!balance){
+    balanceHTML = `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">
+      ⚠️ ไม่มีข้อมูลวันเริ่มงาน<br>
+      <small>กรุณากรอก "วันเริ่มงาน" ในข้อมูลพนักงาน</small>
+    </div>`;
+  } else {
+    const rows = Object.entries(balance).map(([code, info])=>{
+      if(info.used === 0 && info.entitled === 999) return '';
+      const remText = info.remaining === null ? '∞' : info.remaining;
+      const remColor = info.remaining === 0 ? 'var(--red)' : info.remaining !== null && info.remaining <= 1 ? '#f59e0b' : 'var(--green)';
+      const paidBadge = info.paidUsed > 0 ? `<span style="background:#d1fae5;color:#065f46;border-radius:4px;padding:1px 5px;font-size:9px;margin-left:4px">paid ${info.paidUsed}วัน</span>` : '';
+      const unpaidBadge = info.unpaidUsed > 0 ? `<span style="background:#fee2e2;color:#991b1b;border-radius:4px;padding:1px 5px;font-size:9px;margin-left:4px">unpaid ${info.unpaidUsed}วัน</span>` : '';
+      return `<tr>
+        <td style="padding:8px 12px;font-size:13px;font-weight:600;">${info.label}${paidBadge}${unpaidBadge}</td>
+        <td style="padding:8px 12px;text-align:center;font-size:13px;">${info.entitled===999?'ไม่จำกัด':info.entitled} วัน</td>
+        <td style="padding:8px 12px;text-align:center;font-size:14px;font-weight:800;color:var(--red);">${info.used}</td>
+        <td style="padding:8px 12px;text-align:center;font-size:14px;font-weight:800;color:${remColor};">${remText}</td>
+      </tr>`;
+    }).filter(Boolean).join('');
+
+    balanceHTML = `<table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="background:var(--s2);font-size:10px;color:var(--muted);">
+          <th style="padding:6px 12px;text-align:left;font-family:'IBM Plex Mono',monospace;">ประเภทการลา</th>
+          <th style="padding:6px 12px;text-align:center;font-family:'IBM Plex Mono',monospace;">สิทธิ์/ปี</th>
+          <th style="padding:6px 12px;text-align:center;font-family:'IBM Plex Mono',monospace;">ใช้ไป</th>
+          <th style="padding:6px 12px;text-align:center;font-family:'IBM Plex Mono',monospace;">คงเหลือ</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
+  // สร้าง popup
+  const existing = document.getElementById('leaveBalancePopup');
+  if(existing) existing.remove();
+
+  const popup = document.createElement('div');
+  popup.id = 'leaveBalancePopup';
+  popup.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px;';
+  popup.innerHTML = `
+    <div style="background:#fff;border-radius:18px;width:100%;max-width:500px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.25);">
+      <div style="background:linear-gradient(135deg,#0369a1,#0ea5e9);padding:18px 20px;color:#fff;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:16px;font-weight:800;">${emp.name} ${emp.nick||''}</div>
+          <div style="font-size:11px;opacity:0.7;margin-top:2px;">${emp.pos||''} · เริ่มงาน ${startStr} · อายุงาน ${tenureStr}</div>
+        </div>
+        <button onclick="document.getElementById('leaveBalancePopup').remove()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:16px;">✕</button>
+      </div>
+      <div style="max-height:60vh;overflow-y:auto;">
+        ${balanceHTML}
+      </div>
+      <div style="padding:12px 20px;background:var(--s2);border-top:1px solid var(--border);font-size:10px;color:var(--muted);">
+        📋 อ้างอิงกฎหมายแรงงานไทย พ.ร.บ. คุ้มครองแรงงาน พ.ศ. 2541 (แก้ไข 2562)
+      </div>
+    </div>`;
+  popup.addEventListener('click', e=>{ if(e.target===popup) popup.remove(); });
+  document.body.appendChild(popup);
+}
+
 function renderBottom5(){
   const section = document.getElementById('bottom5Section');
   if(!section) return;
@@ -3075,7 +3242,23 @@ function render(){
       const ei = realEi;
       const editBtn = session.isManager
         ? `<button onclick="openEditEmp('${b.id}',${realEi})" style="margin-left:6px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0 2px;opacity:0.6;transition:opacity 0.15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6" title="แก้ไขข้อมูล">✏️</button>` : '';
-      r += `<tr><td class="ic"><div class="iname">${emp.name||''} <span class="inick">${emp.nick||''}</span>${editBtn}</div><div class="ipos">${emp.pos||''}</div>${emp.note?`<div style="font-size:10px;color:var(--muted);margin-top:1px">📝 ${emp.note}</div>`:''}</td>`;
+      // Leave Balance mini badge (non-breaking — ถ้าไม่มี startDate จะไม่แสดง)
+      const _empLeaves2 = (b.leaves||{})[ei]||(b.leaves||{})[String(ei)]||{};
+      const _bal = getLeaveBalance(emp, _empLeaves2);
+      let balBadge = '';
+      if(_bal){
+        const annualUsed = _bal['พร']?.used||0;
+        const annualEnt = _bal['พร']?.entitled||6;
+        const annualRem = Math.max(annualEnt-annualUsed,0);
+        const sickUsed = _bal['ลป']?.used||0;
+        const color = annualRem===0?'#ef4444':annualRem<=1?'#f59e0b':'#10b981';
+        balBadge = `<div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap;">
+          <span style="background:${color}22;color:${color};border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;border:1px solid ${color}44;">พร ${annualRem}วันคงเหลือ</span>
+          <span style="background:#ef444422;color:#ef4444;border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;border:1px solid #ef444444;">ลป ${sickUsed}/30วัน</span>
+        </div>`;
+      }
+      const nameClickable = `onclick="showLeaveBalancePopup('${b.id}',${ei})" style="cursor:pointer;" title="กดเพื่อดู Leave Balance"`;
+      r += `<tr><td class="ic"><div class="iname" ${nameClickable}>${emp.name||''} <span class="inick">${emp.nick||''}</span>${editBtn}</div><div class="ipos">${emp.pos||''}</div>${balBadge}${emp.note?`<div style="font-size:10px;color:var(--muted);margin-top:1px">📝 ${emp.note}</div>`:''}</td>`;
       // หาวันหยุดล่าสุดและครั้งที่จากข้อมูลจริง
       const _bl = b.leaves||{};
       const empLeaves = _bl[ei]||_bl[String(ei)]||{};
@@ -3207,7 +3390,7 @@ function closeLeaveModal(){ document.getElementById('leaveOverlay').classList.re
 // ADD EMP
 // ══════════════════════════════════════════
 function openAddEmp(){ 
-  ['eName','eNick','ePhone','eNote'].forEach(id=>document.getElementById(id).value='');
+  ['eName','eNick','ePhone','eNote','eStartDate'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('ePos').value=''; 
   document.getElementById('empEditIndex').value='';
   document.getElementById('empEditBid').value='';
@@ -3231,6 +3414,7 @@ function openEditEmp(bid, ei){
   // format เบอร์โทรให้ถูกรูปแบบ
   formatPhone(document.getElementById('ePhone'));
   document.getElementById('eNote').value = emp.note||'';
+  document.getElementById('eStartDate').value = emp.startDate||'';
   document.getElementById('empEditIndex').value = ei;
   document.getElementById('empEditBid').value = bid;
   document.getElementById('empModalTitle').textContent = '✏️ แก้ไขข้อมูลพนักงาน';
@@ -3270,11 +3454,13 @@ function saveEmployee(){
     // แก้ไข — ทับข้อมูลเดิม
     const ei = parseInt(editIdx);
     if(ei >= 0 && ei < b.emps.length){
-      b.emps[ei] = { ...b.emps[ei], name, nick, pos, phone, note };
+      const startDate = document.getElementById('eStartDate').value || '';
+      b.emps[ei] = { ...b.emps[ei], name, nick, pos, phone, note, startDate };
     } else { alert('ไม่พบพนักงาน'); return; }
   } else {
     // เพิ่มใหม่
-    b.emps.push({ name, nick, pos, phone, note, last: '-' });
+    const startDate = document.getElementById('eStartDate').value || '';
+    b.emps.push({ name, nick, pos, phone, note, startDate, last: '-' });
   }
   closeEmpModal();
   // บันทึก Log
