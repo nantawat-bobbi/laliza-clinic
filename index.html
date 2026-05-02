@@ -2902,51 +2902,55 @@ function formatLeaveDate(day){
   return `${DOW[day.dow]} ${day.date} ${MON[day.month]} ${(day.year||2026)-543+543}`; // แสดงเป็น พ.ศ.
 }
 
-// หา last leave date + count + insight
-// Strategy: iterate DAYS จากขวา→ซ้าย (index สูง→ต่ำ)
-// เจอ cell แรกที่มีค่า = "ล่าสุด" ตรงกับ UI เสมอ
-// source เดียวกับที่ render ตาราง ไม่คำนวณ date ใหม่
+// หา last leave + count เฉพาะใน payroll period ปัจจุบัน
+// iterate DAYS ขวา→ซ้าย = ตรงกับ column ที่ render เสมอ
 function getLastLeaveInfo(empLeaves){
   if(!empLeaves || typeof empLeaves !== 'object'){
     return { lastDay:null, count:0, daysAgo:null, insight:null, isFrequent:false };
   }
 
-  // นับ count จาก keys ก่อน
-  const validKeys = Object.keys(empLeaves)
-    .map(k=>parseInt(k))
-    .filter(di=>!isNaN(di) && DAYS[di]);
-  const count = validKeys.length;
+  const period = getCurrentPeriod();
 
-  // iterate DAYS ขวา→ซ้าย หา index สูงสุดที่มีใน empLeaves
-  // → ตรงกับ column ขวาสุดในตาราง = วันล่าสุดที่ render
+  // filter เฉพาะ DAYS ที่อยู่ใน period (26–25)
+  // DAYS ถูก generate จาก Date จริง → ts ใช้เปรียบได้ตรง
+  const periodDayIndices = new Set(
+    DAYS.map((d,i) => (d.ts >= period.start.getTime() && d.ts <= period.end.getTime()) ? i : -1)
+        .filter(i => i !== -1)
+  );
+
+  let count = 0;
   let lastDay = null;
+
+  // iterate ขวา→ซ้าย ใน period เท่านั้น
   for(let di = DAYS.length - 1; di >= 0; di--){
-    if(empLeaves[di] !== undefined || empLeaves[String(di)] !== undefined){
-      lastDay = DAYS[di]; // ใช้ DAYS[di] โดยตรง ไม่แปลง date ใหม่
-      break;
+    if(!periodDayIndices.has(di)) continue;
+    const hasLeave = empLeaves[di] !== undefined || empLeaves[String(di)] !== undefined;
+    if(hasLeave){
+      count++;
+      if(lastDay === null) lastDay = DAYS[di]; // ขวาสุด = ล่าสุด
     }
   }
 
-  // daysAgo — ใช้ lastDay.ts ที่ผูกกับ new Date() ตอน init DAYS
-  // ไม่มี timezone drift เพราะ Date object สร้างใน browser เดียวกัน
+  // daysAgo จาก lastDay.ts — ไม่ hardcode year ไม่มี timezone drift
   let daysAgo = null;
-  if(lastDay && lastDay.ts){
+  if(lastDay && typeof lastDay.ts === 'number'){
     const now = new Date(); now.setHours(0,0,0,0);
     daysAgo = Math.round((now.getTime() - lastDay.ts) / (1000*60*60*24));
   }
 
-  // Insight — อิง daysAgo จาก timestamp จริง
+  // Insight
   let insight = null;
   if(daysAgo !== null){
-    if(daysAgo <= 0)      insight = { text:'หยุดวันนี้',    color:'#ef4444', icon:'🔴' };
-    else if(daysAgo === 1) insight = { text:'หยุดเมื่อวาน',  color:'#f59e0b', icon:'🟡' };
-    else if(daysAgo <= 3)  insight = { text:`${daysAgo} วันที่แล้ว`, color:'#f59e0b', icon:'🟡' };
-    else if(daysAgo <= 7)  insight = { text:`${daysAgo} วันที่แล้ว`, color:'#10b981', icon:'🟢' };
-    else                   insight = { text:`${daysAgo} วันที่แล้ว`, color:'#94a3b8', icon:'⚪' };
+    if(daysAgo <= 0)       insight = { text:'หยุดวันนี้',               color:'#dc2626', dot:'#dc2626' };
+    else if(daysAgo === 1) insight = { text:'หยุดเมื่อวาน',             color:'#d97706', dot:'#f59e0b' };
+    else if(daysAgo <= 3)  insight = { text:`${daysAgo} วันที่แล้ว`,   color:'#d97706', dot:'#f59e0b' };
+    else if(daysAgo <= 7)  insight = { text:`${daysAgo} วันที่แล้ว`,   color:'#059669', dot:'#10b981' };
+    else                   insight = { text:`${daysAgo} วันที่แล้ว`,   color:'#94a3b8', dot:'#94a3b8' };
   }
 
-  // isFrequent — >2 ครั้ง/สัปดาห์ ใน window 30 วัน
-  const isFrequent = count / (DAYS.length / 7) > 2;
+  // isFrequent > 2 ครั้ง/สัปดาห์ใน period
+  const weeksInPeriod = DAYS.length / 7;
+  const isFrequent = weeksInPeriod > 0 && (count / weeksInPeriod) > 2;
 
   return { lastDay, count, daysAgo, insight, isFrequent };
 }
@@ -3381,7 +3385,9 @@ function render(){
     const sunBorder = day.dow===0 ? 'border-left:2px solid rgba(220,38,38,0.25);' : '';
     const hday = isHoliday(day.date, day.month);
     const hdotTitle = hday ? ` title="🎌 ${hday}"` : '';
-    h+=`<th style="${sunBorder}">
+    const todayD = new Date(); todayD.setHours(0,0,0,0);
+    const isToday = day.ts && Math.abs(day.ts - todayD.getTime()) < 86400000;
+    h+=`<th class="${isToday?'today-col':''}" style="${sunBorder}">
       <div class="th-dayname ${day.we?'we':''}">${day.name}</div>
       <div class="th-daynum ${day.we?'we':''} ${hday?'holiday':''}">${day.date}</div>
       <div class="holiday-dot ${hday?'visible':''}"${hdotTitle}></div>
@@ -3435,10 +3441,13 @@ function render(){
       } else {
         // แสดงวันล่าสุด + insight
         const insightHTML = insight
-          ? `<span style="color:${insight.color};font-weight:700">${insight.icon} ${insight.text}</span>`
+          ? `<span style="display:inline-flex;align-items:center;gap:4px;color:${insight.color};font-weight:600;font-size:11px">
+               <span style="width:6px;height:6px;border-radius:50%;background:${insight.dot};display:inline-block;flex-shrink:0"></span>
+               ${insight.text}
+             </span>`
           : '';
         const freqBadge = isFrequent
-          ? `<span style="background:#fee2e2;color:#b91c1c;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:3px">หยุดถี่ ⚠️</span>`
+          ? `<span style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:600;margin-left:4px">หยุดถี่</span>`
           : '';
         leaveInfo = `<div style="font-size:10px;margin-top:2px;line-height:1.6">
           <div style="color:var(--muted)">📅 ${lastDateStr}</div>
@@ -3462,7 +3471,9 @@ function render(){
         else{tip+=`📅 ${_dateStr}`;}
         const isSun=day.dow===0;
         const isHday=!!_hname;
-        r += `<td class="dc ${day.we?'wec':''} ${isSun?'sun':''} ${isHday?'holiday-col':''} ${locked?'locked':''}" ${locked?'':` onclick="openLeaveModal('${b.id}',${ei},${di})"`} title="${tip}">`;
+        const _todayD=new Date();_todayD.setHours(0,0,0,0);
+        const _isToday=day.ts&&Math.abs(day.ts-_todayD.getTime())<86400000;
+        r += `<td class="dc ${day.we?'wec':''} ${isSun?'sun':''} ${isHday?'holiday-col':''} ${_isToday?'today-col':''} ${locked?'locked':''}" ${locked?'':` onclick="openLeaveModal('${b.id}',${ei},${di})"`} title="${tip}">`;
         if(ld) r += `<div class="ld ${getClass(ld.code)}">${ld.code}</div>`;
         r += `</td>`;
       });
