@@ -625,6 +625,22 @@ td.ic .ilast{font-size:11px;color:var(--green);}
 .th-daynum.holiday{color:#d97706 !important;}
 .holiday-col{background:rgba(245,158,11,0.06) !important;}
 
+/* ── ACTIVITY LOG ── */
+.log-page{padding:0 24px 90px;}
+.log-header-card{background:linear-gradient(135deg,#1e3a5f,#1e40af);border-radius:16px;padding:20px 24px;color:#fff;margin-bottom:16px;}
+.log-header-card h2{font-size:18px;font-weight:800;}
+.log-header-card p{font-size:11px;color:rgba(255,255,255,0.65);margin-top:3px;}
+.log-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.log-item{display:flex;align-items:flex-start;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);transition:background 0.15s;}
+.log-item:last-child{border-bottom:none;}
+.log-item:hover{background:var(--s2);}
+.log-icon{font-size:22px;flex-shrink:0;margin-top:2px;}
+.log-info{flex:1;min-width:0;}
+.log-action{font-size:13px;font-weight:700;color:var(--text);}
+.log-detail{font-size:11px;color:var(--muted);margin-top:2px;}
+.log-time{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;flex-shrink:0;margin-top:3px;}
+.log-branch{font-size:10px;color:var(--accent);font-family:'IBM Plex Mono',monospace;margin-top:2px;}
+
 /* SCROLLBAR */
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:var(--s2);}
@@ -865,6 +881,9 @@ td.ic .ilast{font-size:11px;color:var(--green);}
       <div class="nav-item" id="nav-holiday" onclick="switchTab('holiday',event)" style="display:none">
         <span class="nav-icon">🎌</span> วันหยุดพิเศษ
       </div>
+      <div class="nav-item" id="nav-log" onclick="switchTab('log',event)" style="display:none">
+        <span class="nav-icon">📋</span> ประวัติการแก้ไข
+      </div>
       <div class="nav-item" id="nav-docs" onclick="switchTab('docs',event)">
         <span class="nav-icon">📄</span> เอกสาร
       </div>
@@ -1026,6 +1045,19 @@ td.ic .ilast{font-size:11px;color:var(--green);}
       <div class="stats-container" id="statsContainer"></div>
     </div>
 
+    <!-- ACTIVITY LOG -->
+    <div id="pageLog" class="page-content" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+      <div class="log-page">
+        <div class="log-header-card">
+          <h2>📋 ประวัติการแก้ไข</h2>
+          <p>บันทึกการเปลี่ยนแปลงข้อมูลทั้งหมด</p>
+        </div>
+        <div class="log-card" id="logList">
+          <div style="text-align:center;padding:40px;color:var(--muted)">กำลังโหลด...</div>
+        </div>
+      </div>
+    </div>
+
     <!-- HOLIDAY MANAGER -->
     <div id="pageHoliday" class="page-content" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <div style="background:linear-gradient(135deg,#92400e,#b45309);padding:24px;color:#fff;flex-shrink:0;">
@@ -1168,6 +1200,10 @@ td.ic .ilast{font-size:11px;color:var(--green);}
     <div class="mf"><label>ชื่อเล่น</label><input type="text" id="eNick" placeholder="เช่น (ศรี)"></div>
     <div class="mf"><label>ตำแหน่ง</label><input type="text" id="ePos" placeholder="BC / BT / แคชเชียร์ ..."></div>
     <div class="mf"><label>เบอร์โทร</label><input type="text" id="ePhone" placeholder="0xx-xxx-xxxx"></div>
+    <div class="mf">
+      <label>หมายเหตุ * <span style="font-size:10px;color:var(--muted)">(บังคับใส่)</span></label>
+      <input type="text" id="eNote" placeholder="เช่น พนักงานประจำ / ทดลองงาน / ลาออก...">
+    </div>
     <div class="modal-row">
       <button class="btn btn-ghost" onclick="closeEmpModal()">ยกเลิก</button>
       <button class="btn btn-danger" id="empDelBtn" onclick="deleteEmployee()" style="display:none">🗑 ลบ</button>
@@ -1633,7 +1669,7 @@ function getCurrentBranch(){
 let currentTab = 'overview';
 function switchTab(tab, e){
   currentTab = tab;
-  const pages = { overview:'pageOverview', table:'pageTable', tableAll:'pageTableAll', dashboard:'pageDashboard', stats:'pageStats', docs:'pageDocs', mgrleave:'pageMgrleave', holiday:'pageHoliday' };
+  const pages = { overview:'pageOverview', table:'pageTable', tableAll:'pageTableAll', dashboard:'pageDashboard', stats:'pageStats', docs:'pageDocs', mgrleave:'pageMgrleave', holiday:'pageHoliday', log:'pageLog' };
   document.querySelectorAll('.page-content').forEach(p=>p.style.display='none');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.bottom-nav-item').forEach(n=>n.classList.remove('active'));
@@ -1650,6 +1686,7 @@ function switchTab(tab, e){
   if(tab==='docs') renderDocs();
   if(tab==='mgrleave') renderMgrLeave();
   if(tab==='holiday') renderHolidayList();
+  if(tab==='log') renderActivityLog();
 }
 
 function toggleMobileMenu(){
@@ -2151,6 +2188,55 @@ function loadHolidaysFromFirebase(cb){
   }).catch(e=>{ if(cb) cb(); });
 }
 
+// ══ ACTIVITY LOG ══
+function writeLog(action, detail){
+  const DOW=['อา','จ','อ','พ','พฤ','ศ','ส'];
+  const MONTH=['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const now = new Date();
+  const b = BRANCHES.find(x=>x.id===session.branchId);
+  const who = session.isAdmin ? '⭐ Admin' : session.isManager ? '👑 Manager' : '👁️ Staff';
+  const log = {
+    action, detail,
+    who,
+    branch: b ? b.name : '-',
+    branchId: session.branchId,
+    ts: now.getTime(),
+    timeStr: `${DOW[now.getDay()]} ${now.getDate()} ${MONTH[now.getMonth()+1]} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`
+  };
+  // บันทึกลง Firebase
+  db.ref('logs').push(log).catch(e=>console.error(e));
+}
+
+function renderActivityLog(){
+  const list = document.getElementById('logList');
+  if(!list) return;
+  list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">กำลังโหลด...</div>';
+  
+  db.ref('logs').orderByChild('ts').limitToLast(100).once('value').then(snap=>{
+    const data = snap.val();
+    if(!data){ list.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)">ยังไม่มีประวัติการแก้ไข</div>'; return; }
+    
+    const logs = Object.values(data).reverse(); // ล่าสุดก่อน
+    const ACTION_ICON = {
+      'เพิ่มพนักงาน':'👤', 'แก้ไขพนักงาน':'✏️', 'ลบพนักงาน':'🗑️',
+      'บันทึกการลา':'📅', 'ลบการลา':'❌', 'เพิ่มวันหยุด':'🎌', 'ลบวันหยุด':'🗑️'
+    };
+    
+    list.innerHTML = logs.map(log=>{
+      const icon = ACTION_ICON[log.action] || '📝';
+      return `<div class="log-item">
+        <div class="log-icon">${icon}</div>
+        <div class="log-info">
+          <div class="log-action">${log.action}</div>
+          <div class="log-detail">${log.detail}</div>
+          <div class="log-branch">${log.who} · ${log.branch}</div>
+        </div>
+        <div class="log-time">${log.timeStr||'-'}</div>
+      </div>`;
+    }).join('');
+  }).catch(e=>{ list.innerHTML='<div style="text-align:center;padding:40px;color:var(--red)">โหลดข้อมูลไม่ได้</div>'; });
+}
+
 function renderBottom5(){
   const section = document.getElementById('bottom5Section');
   if(!section) return;
@@ -2421,7 +2507,7 @@ function render(){
       const realEi = allEmps.indexOf(emp);
       const editBtn = session.isManager
         ? `<button onclick="openEditEmp('${b.id}',${realEi})" style="margin-left:6px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0 2px;opacity:0.6;transition:opacity 0.15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6" title="แก้ไขข้อมูล">✏️</button>` : '';
-      r += `<tr><td class="ic"><div class="iname">${emp.name||''} <span class="inick">${emp.nick||''}</span>${editBtn}</div><div class="ipos">${emp.pos||''}</div></td>`;
+      r += `<tr><td class="ic"><div class="iname">${emp.name||''} <span class="inick">${emp.nick||''}</span>${editBtn}</div><div class="ipos">${emp.pos||''}</div>${emp.note?`<div style="font-size:10px;color:var(--muted);margin-top:1px">📝 ${emp.note}</div>`:''}</td>`;
       // หาวันหยุดล่าสุดและครั้งที่จากข้อมูลจริง
       const empLeaves = bLeaves[ei]||bLeaves[String(ei)]||{};
       const leaveKeys = Object.keys(empLeaves).map(Number).sort((a,b)=>b-a); // เรียงมากไปน้อย
@@ -2552,7 +2638,7 @@ function closeLeaveModal(){ document.getElementById('leaveOverlay').classList.re
 // ADD EMP
 // ══════════════════════════════════════════
 function openAddEmp(){ 
-  ['eName','eNick','ePhone'].forEach(id=>document.getElementById(id).value='');
+  ['eName','eNick','ePhone','eNote'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('ePos').value=''; 
   document.getElementById('empEditIndex').value='';
   document.getElementById('empEditBid').value='';
@@ -2575,6 +2661,7 @@ function openEditEmp(bid, ei){
   document.getElementById('ePhone').value = emp.phone||'';
   // format เบอร์โทรให้ถูกรูปแบบ
   formatPhone(document.getElementById('ePhone'));
+  document.getElementById('eNote').value = emp.note||'';
   document.getElementById('empEditIndex').value = ei;
   document.getElementById('empEditBid').value = bid;
   document.getElementById('empModalTitle').textContent = '✏️ แก้ไขข้อมูลพนักงาน';
@@ -2596,10 +2683,12 @@ function saveEmployee(){
   const phone = document.getElementById('ePhone').value.trim();
   const phoneDigits = phone.replace(/[^0-9]/g,'');
 
+  const note = document.getElementById('eNote').value.trim();
   if(!name){ alert('กรุณากรอกชื่อ-นามสกุล'); return; }
   if(!nick){ alert('กรุณากรอกชื่อเล่น'); return; }
   if(!pos){ alert('กรุณาเลือกตำแหน่ง'); return; }
   if(phoneDigits.length !== 10){ alert('กรุณากรอกเบอร์โทร 10 หลัก'); return; }
+  if(!note){ alert('กรุณากรอกหมายเหตุ'); return; }
 
   const editIdx = document.getElementById('empEditIndex').value;
   const editBid = document.getElementById('empEditBid').value;
@@ -2612,13 +2701,16 @@ function saveEmployee(){
     // แก้ไข — ทับข้อมูลเดิม
     const ei = parseInt(editIdx);
     if(ei >= 0 && ei < b.emps.length){
-      b.emps[ei] = { ...b.emps[ei], name, nick, pos, phone };
+      b.emps[ei] = { ...b.emps[ei], name, nick, pos, phone, note };
     } else { alert('ไม่พบพนักงาน'); return; }
   } else {
     // เพิ่มใหม่
-    b.emps.push({ name, nick, pos, phone, last: '-' });
+    b.emps.push({ name, nick, pos, phone, note, last: '-' });
   }
   closeEmpModal();
+  // บันทึก Log
+  const logAction = editIdx !== '' ? 'แก้ไขพนักงาน' : 'เพิ่มพนักงาน';
+  writeLog(logAction, `${name} ${nick} · ${pos}`);
   saveToFirebase();
 }
 function deleteEmployee(){
@@ -3086,7 +3178,12 @@ saveLeave = function(){
   const b = BRANCHES.find(x=>x.id===lms.bid);
   if(!b.leaves) b.leaves = {};
   if(!b.leaves[lms.ei]) b.leaves[lms.ei]={};
-  b.leaves[lms.ei][lms.di] = {code:lms.sel, note:document.getElementById('lNote').value.trim()};
+  const lNote = document.getElementById('lNote').value.trim();
+  b.leaves[lms.ei][lms.di] = {code:lms.sel, note:lNote};
+  const emp = b.emps[lms.ei];
+  const day = DAYS[lms.di];
+  const t = TYPES.find(t=>t.code===lms.sel);
+  writeLog('บันทึกการลา', `${emp?emp.name:''} · ${lms.sel} (${t?t.label:''}) วันที่ ${day?day.date+'/'+day.month:''}`);
   closeLeaveModal();
   render();
   saveToFirebase();
@@ -3095,7 +3192,12 @@ saveLeave = function(){
 const _origDelLeave = delLeave;
 delLeave = function(){
   const b = BRANCHES.find(x=>x.id===lms.bid);
-  if(b && b.leaves && b.leaves[lms.ei]) delete b.leaves[lms.ei][lms.di];
+  if(b && b.leaves && b.leaves[lms.ei]){
+    const emp = b.emps[lms.ei];
+    const day = DAYS[lms.di];
+    writeLog('ลบการลา', `${emp?emp.name:''} วันที่ ${day?day.date+'/'+day.month:''}`);
+    delete b.leaves[lms.ei][lms.di];
+  }
   closeLeaveModal();
   render();
   saveToFirebase();
@@ -3175,7 +3277,7 @@ function renderTableAll(){
       if(!emp) return;
       html+=`<tr>
         <td class="ic"><div class="iname">${emp.name||''} <span class="inick">${emp.nick||''}</span></div></td>
-        <td class="ic"><div class="ipos">${emp.pos||''}</div></td>`;
+        <td class="ic"><div class="ipos">${emp.pos||''}</div>${emp.note?`<div style="font-size:10px;color:var(--muted);margin-top:1px">📝 ${emp.note}</div>`:''}</td>`;
       DAYS.forEach((day,di)=>{
         const ld=getLeaveData(bLeaves,ei,di);
         const isSun2 = day.dow===0;
@@ -3209,12 +3311,14 @@ function updateNavForBranch(){
     show('nav-overview',true); show('nav-table',false); show('nav-tableAll',true);
     show('nav-dashboard',true); show('nav-mgrleave',true); show('nav-stats',true); show('nav-docs',true);
     show('nav-holiday', session.isAdmin);
+    show('nav-log', session.isManager||session.isAdmin);
     show('bn-overview',true); show('bn-table',false); show('bn-tableAll',true);
     show('bn-dashboard',true); show('bn-mgrleave',true); show('bn-stats',true);
   } else {
     show('nav-overview',true); show('nav-table',true); show('nav-tableAll',false);
     show('nav-dashboard',true); show('nav-mgrleave', session.isManager); show('nav-stats',true); show('nav-docs',true);
     show('nav-holiday', session.isAdmin);
+    show('nav-log', session.isManager||session.isAdmin);
     show('bn-overview',true); show('bn-table',true); show('bn-tableAll',false);
     show('bn-dashboard',true); show('bn-mgrleave', session.isManager); show('bn-stats',true);
   }
