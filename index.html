@@ -233,7 +233,7 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
 }
 
 /* PAGE CONTENT */
-.page-content{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;-webkit-overflow-scrolling:touch;}
+.page-content{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
 
 /* ════════════════════════════════
    OVERVIEW PAGE
@@ -335,54 +335,61 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
 .ssub{font-size:10px;color:var(--muted);}
 .content{flex:1;overflow:auto;padding:16px 20px;}
 .table-wrapper{
-  background:var(--s1);border:1px solid var(--border);border-radius:14px;
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:14px;
   box-shadow:0 4px 10px rgba(0,0,0,0.04);
-  /* NO overflow:hidden — blocks sticky positioning */
-  display:flex;flex-direction:column;min-height:0;
+  display:flex;flex-direction:column;
+  /* NO overflow:hidden — ไม่งั้น sticky ไม่ทำงาน */
+  overflow:visible;
+  min-height:0;
 }
 .table-scroll{
-  overflow:auto; /* both x and y */
+  overflow:auto;
   -webkit-overflow-scrolling:touch;
   flex:1;min-height:0;
+  max-height:calc(100vh - 220px);
   border-radius:0 0 14px 14px;
 }
-/* Sticky row 1 — header labels (ชื่อ / เบอร์ / วันที่เดือน) */
-.table-scroll table thead tr:first-child th {
-  position:sticky;top:0;z-index:30;
-  background:var(--s2);
-  box-shadow:0 1px 0 var(--border);
+
+/* ── Sticky header row 1 (ชื่อ / เบอร์ / เดือน) ── */
+.table-scroll table { border-collapse:separate; border-spacing:0; }
+.table-scroll thead tr:first-child th {
+  position:sticky; top:0; z-index:30;
+  background:#f8fafc;
+  border-bottom:1px solid var(--border);
+  box-shadow:0 2px 4px rgba(0,0,0,0.06);
 }
-/* Sticky row 2 — day numbers */
-.table-scroll table thead tr:nth-child(2) th {
-  position:sticky;top:33px;z-index:29;
-  background:var(--s2);
-  box-shadow:0 1px 0 var(--border);
+/* ── Sticky date row 2 ── */
+.table-scroll thead tr:nth-child(2) th {
+  position:sticky; top:38px; z-index:29;
+  background:#f8fafc;
+  border-bottom:2px solid var(--border);
 }
-/* Frozen col 1 — ชื่อ */
-.table-scroll table th:first-child,
-.table-scroll table td:first-child {
-  position:sticky;left:0;z-index:20;
+
+/* ── Frozen col 1 — ชื่อพนักงาน ── */
+.table-scroll th:first-child,
+.table-scroll td:first-child {
+  position:sticky; left:0; z-index:20;
   background:var(--s1);
-  box-shadow:1px 0 0 var(--border);
+  box-shadow:1px 0 3px rgba(0,0,0,0.07);
+  min-width:160px; max-width:200px;
 }
-.table-scroll table thead th:first-child {
-  z-index:35;background:var(--s2);
-}
-/* Frozen col 2 — เบอร์ */
-.table-scroll table th:nth-child(2),
-.table-scroll table td:nth-child(2) {
-  position:sticky;left:160px;z-index:19;
+.table-scroll thead th:first-child { z-index:35; background:#f8fafc; }
+
+/* ── Frozen col 2 — เบอร์/หยุดล่าสุด ── */
+.table-scroll th:nth-child(2),
+.table-scroll td:nth-child(2) {
+  position:sticky; left:160px; z-index:19;
   background:var(--s1);
-  box-shadow:2px 0 4px rgba(0,0,0,0.05);
+  box-shadow:2px 0 5px rgba(0,0,0,0.06);
+  min-width:110px;
 }
-.table-scroll table thead th:nth-child(2) {
-  z-index:34;background:var(--s2);
-}
-/* Hover override sticky bg */
+.table-scroll thead th:nth-child(2) { z-index:34; background:#f8fafc; }
+
+/* Hover — override frozen col bg */
 tbody tr:hover td:first-child,
-tbody tr:hover td:nth-child(2) {
-  background:var(--row-hover-bg) !important;
-}
+tbody tr:hover td:nth-child(2) { background:var(--row-hover-bg) !important; }
 table{border-collapse:collapse;width:100%;min-width:950px;}
 thead th{background:var(--s2);font-size:11px;text-align:center;border-bottom:2px solid var(--border);font-weight:600;}
 .th-month{padding:12px 14px;color:var(--text);font-size:12px;border-right:6px solid var(--border);}
@@ -1557,25 +1564,43 @@ const TYPES = [
 ];
 
 const DAY_NAMES=['อา','จ','อ','พ','พฤ','ศ','ส'];
-const DAYS=[];
-const _TODAY_MIDNIGHT=(()=>{ const d=new Date(); return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime(); })();
-let dRef=new Date(2026,3,26);
-for(let i=0;i<30;i++){
-  const dd=new Date(dRef);
-  // midnight local — ป้องกัน timezone drift
-  const midnight=new Date(dd.getFullYear(),dd.getMonth(),dd.getDate()).getTime();
-  const isPast   = midnight < _TODAY_MIDNIGHT;
-  const isToday  = midnight === _TODAY_MIDNIGHT;
-  const isFuture = midnight > _TODAY_MIDNIGHT;
-  DAYS.push({
-    date:dd.getDate(), month:dd.getMonth()+1, year:dd.getFullYear(),
-    dow:dd.getDay(), name:DAY_NAMES[dd.getDay()],
-    we:dd.getDay()===0||dd.getDay()===6,
-    ts:midnight, // midnight local — consistent กับ _TODAY_MIDNIGHT
-    isPast, isToday, isFuture
-  });
-  dRef.setDate(dRef.getDate()+1);
+// ── Calendar Date Engine ──────────────────────
+// ใช้ Date object จริงทั้งระบบ ไม่มี index-based comparison
+
+function getDateStatus(dateObj){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(dateObj); d.setHours(0,0,0,0);
+  if(d.getTime() < today.getTime()) return 'past';
+  if(d.getTime() === today.getTime()) return 'today';
+  return 'future';
 }
+
+function buildCalendarDates(startDate, totalDays){
+  const dates = [];
+  for(let i=0; i<totalDays; i++){
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + i);
+    d.setHours(0,0,0,0);
+    const status = getDateStatus(d);
+    dates.push({
+      dateObj: d,                        // Date object จริง — source of truth
+      date: d.getDate(),
+      month: d.getMonth()+1,
+      year: d.getFullYear(),
+      ts: d.getTime(),                   // midnight local
+      dow: d.getDay(),
+      name: DAY_NAMES[d.getDay()],
+      we: d.getDay()===0||d.getDay()===6,
+      isPast:   status==='past',
+      isToday:  status==='today',
+      isFuture: status==='future',
+      status                             // 'past'|'today'|'future'
+    });
+  }
+  return dates;
+}
+
+const DAYS = buildCalendarDates(new Date(2026,3,26), 30); // 26 Apr 2026, 30 days
 const aprDays=DAYS.filter(d=>d.month===4);
 const mayDays=DAYS.filter(d=>d.month===5);
 
