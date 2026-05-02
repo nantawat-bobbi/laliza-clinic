@@ -1765,7 +1765,7 @@ function startApp(){
   document.getElementById('editNameBtn').style.display = session.isManager ? '' : 'none';
   document.getElementById('changePwBtn').style.display = session.isManager ? '' : 'none';
   document.getElementById('addEmpBtn').style.display = session.isManager ? '' : 'none';
-  document.getElementById('exportBtn').style.display = session.isManager ? '' : 'none';
+  document.getElementById('exportBtn').style.display = (session.isManager || session.isAdmin) ? '' : 'none';
   document.getElementById('readonlyBanner').style.display = session.isManager ? 'none' : 'flex';
 
   updateNavForBranch();
