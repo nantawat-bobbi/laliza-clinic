@@ -3718,7 +3718,7 @@ scrollHTML += `</div>`;
     });
   }
 
-// 🔥 GROUP EMPLOYEES (วางตรงนี้ ก่อน rows(...))
+// 🔥 GROUP EMPLOYEES (เวอร์ชันถูกต้อง)
 
 const mgr = [];
 const bc = [];
@@ -3728,6 +3728,8 @@ const other = [];
 const suspended = [];
 
 allEmps.forEach(emp => {
+  console.log("EMP POS:", emp.pos); // debug
+
   const pos = (emp.pos || '').trim();
 
   if (['Branch Manager','Manager','ผู้จัดการ','ผจก.'].includes(pos)) {
@@ -3746,6 +3748,7 @@ allEmps.forEach(emp => {
 });
 
 // 🔍 debug
+console.log("ALL POS:", allEmps.map(e => e.pos));
 console.log("mgr:", mgr.length, "bc:", bc.length, "bt:", bt.length);
 
 rows(mgr,'👑 ผู้จัดการ');
