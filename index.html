@@ -3147,62 +3147,22 @@ function getCurrentPeriod(today){
 // iterate DAYS ขวา→ซ้าย = ตรงกับ column ที่ render เสมอ
 function getLastLeaveInfo(empLeaves){
   if(!empLeaves || typeof empLeaves !== 'object'){
-    return { lastDay:null, count:0, daysAgo:null, insight:null, isFrequent:false };
+    return { lastDay:null, count:0, label:null, isFrequent:false };
   }
 
-  const period = getCurrentPeriod();
+  // นับ count ทั้งหมด (รวม future)
+  const count = Object.keys(empLeaves)
+    .filter(k => !isNaN(parseInt(k)) && DAYS[parseInt(k)])
+    .length;
 
-  // filter เฉพาะ DAYS ที่อยู่ใน period (26–25)
-  // DAYS ถูก generate จาก Date จริง → ts ใช้เปรียบได้ตรง
-  const periodDayIndices = new Set(
-    DAYS.map((d,i) => (d.ts >= period.start.getTime() && d.ts <= period.end.getTime()) ? i : -1)
-        .filter(i => i !== -1)
-  );
+  // หา last past/today — ใช้ getLastLeaveDate (spec C)
+  const lastDay = getLastLeaveDate(empLeaves, DAYS);
 
-  let count = 0;
-  let lastDay = null;
+  // relative label — ใช้ getLeaveLabel (spec D)
+  const label = getLeaveLabel(lastDay);
 
-  // iterate ขวา→ซ้าย ใน period เท่านั้น
-  for(let di = DAYS.length - 1; di >= 0; di--){
-    if(!periodDayIndices.has(di)) continue;
-    const hasLeave = empLeaves[di] !== undefined || empLeaves[String(di)] !== undefined;
-    if(hasLeave){
-      count++;
-      if(lastDay === null) lastDay = DAYS[di]; // ขวาสุด = ล่าสุด
-    }
-  }
-
-  // daysAgo — map today explicitly to date, ไม่ infer จาก grid position
-  let daysAgo = null;
-  if(lastDay && typeof lastDay.ts === 'number'){
-    const now = new Date();
-    // normalize ทั้งคู่เป็น midnight local time ป้องกัน timezone drift
-    const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const dayMidnight = new Date(
-      lastDay.year || now.getFullYear(),
-      (lastDay.month || 1) - 1,
-      lastDay.date
-    ).getTime();
-    // คำนวณ diff จาก date จริง ไม่ใช้ ts โดยตรง (ts อาจมี time component)
-    daysAgo = Math.round((nowMidnight - dayMidnight) / (1000*60*60*24));
-  }
-
-  // Insight — daysAgo < 0 = วันในอนาคต (ยังไม่ถึง), = 0 = วันนี้จริง
-  let insight = null;
-  if(daysAgo !== null){
-    if(daysAgo < 0)        insight = { text:'วันที่กำลังจะมา',          color:'#7c3aed', dot:'#a78bfa' };
-    else if(daysAgo === 0) insight = { text:'หยุดวันนี้',               color:'#dc2626', dot:'#dc2626' };
-    else if(daysAgo === 1) insight = { text:'เมื่อวาน',                 color:'#d97706', dot:'#f59e0b' };
-    else if(daysAgo <= 3)  insight = { text:`${daysAgo} วันที่แล้ว`,   color:'#d97706', dot:'#f59e0b' };
-    else if(daysAgo <= 7)  insight = { text:`${daysAgo} วันที่แล้ว`,   color:'#059669', dot:'#10b981' };
-    else                   insight = { text:`${daysAgo} วันที่แล้ว`,   color:'#94a3b8', dot:'#94a3b8' };
-  }
-
-  // isFrequent > 2 ครั้ง/สัปดาห์ใน period
-  const weeksInPeriod = DAYS.length / 7;
-  const isFrequent = weeksInPeriod > 0 && (count / weeksInPeriod) > 2;
-
-  return { lastDay, count, daysAgo, insight, isFrequent };
+  const isFrequent = DAYS.length > 0 && (count/(DAYS.length/7)) > 2;
+  return { lastDay, count, label, isFrequent };
 }
 
 // ════════════════════════════════════════════
