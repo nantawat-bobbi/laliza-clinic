@@ -3615,12 +3615,13 @@ function render(){
       scrollHTML += `<div class="cal-grid" style="background:#e0f2fe;min-height:26px;border-bottom:1px solid #bae6fd;"></div>`;
     }
     emps.forEach(emp=>{
-      const realEi = allEmps.indexOf(emp);
-      const ei = realEi;
+      const realEi = allEmps.findIndex(e => e.id === emp.id);
+if (realEi === -1) return; // กัน crash
+const ei = realEi;
       const editBtn = (session.isManager||session.isAdmin)
         ? `<button onclick="openEditEmp('${b.id}',${realEi})" style="margin-left:6px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0 2px;opacity:0.6;transition:opacity 0.15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6" title="แก้ไขข้อมูล">✏️</button>` : '';
       // Leave Balance mini badge (non-breaking — ถ้าไม่มี startDate จะไม่แสดง)
-      const _empLeaves2 = (b.leaves||{})[ei]||(b.leaves||{})[String(ei)]||{};
+      const _empLeaves2 = (b.leaves && (b.leaves[ei] || b.leaves[String(ei)])) || {};
       const _bal = getLeaveBalance(emp, _empLeaves2);
       let balBadge = '';
       if(_bal){
@@ -3771,7 +3772,12 @@ console.log("RENDER START");
 console.log("fixed:", fixedHTML.length, "scroll:", scrollHTML.length);
 
 // 🔥 render ครั้งเดียวพอ
-document.getElementById('mainContent').innerHTML = h;
+try {
+  document.getElementById('mainContent').innerHTML = h;
+} catch (e) {
+  console.error("🔥 RENDER ERROR:", e);
+  alert(e.message);
+}
 
 console.log("RENDER DONE");
 
