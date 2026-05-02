@@ -3057,14 +3057,14 @@ function render(){
     if(!emps.length) return '';
     let r = label ? `<tr class="section-divider"><td colspan="${DAYS.length+2}">${label}</td></tr>` : '';
     emps.forEach(emp=>{
-      const ei = b.emps.indexOf(emp);
-      // ใช้ index จาก allEmps โดยตรง (ไม่ findIndex ซ้ำ)
       const realEi = allEmps.indexOf(emp);
+      const ei = realEi;
       const editBtn = session.isManager
         ? `<button onclick="openEditEmp('${b.id}',${realEi})" style="margin-left:6px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0 2px;opacity:0.6;transition:opacity 0.15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6" title="แก้ไขข้อมูล">✏️</button>` : '';
       r += `<tr><td class="ic"><div class="iname">${emp.name||''} <span class="inick">${emp.nick||''}</span>${editBtn}</div><div class="ipos">${emp.pos||''}</div>${emp.note?`<div style="font-size:10px;color:var(--muted);margin-top:1px">📝 ${emp.note}</div>`:''}</td>`;
       // หาวันหยุดล่าสุดและครั้งที่จากข้อมูลจริง
-      const empLeaves = bLeaves[ei]||bLeaves[String(ei)]||{};
+      const _bl = b.leaves||{};
+      const empLeaves = _bl[ei]||_bl[String(ei)]||{};
       const leaveKeys = Object.keys(empLeaves).map(Number).sort((a,b)=>b-a); // เรียงมากไปน้อย
       let lastDateStr = '-';
       let leaveCount = Object.keys(empLeaves).length;
