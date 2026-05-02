@@ -2403,8 +2403,7 @@ function renderMgrLeave(){
   const body = document.getElementById('mgrleaveBody');
   if(!body) return;
 
-  const MGR_POS = ['ผู้จัดการ','ผจก.','Branch Manager','Manager'];
-  const allBranches = BRANCHES.filter(b=>b.id!=='b9'&&b.id!=='b10');
+
 
   // รวบรวมข้อมูลการลาของผจก.ทุกสาขา
   const allLeaves = []; // {date, month, dow, dayName, code, emp, branch, branchColor}
@@ -3547,12 +3546,7 @@ function render(){
   const bLeaves = b.leaves || {};
   const POS_SPECIAL = ['พักงาน','ยังไม่เริ่มงาน'];
   const POS_ALL = ['ผู้จัดการ','ผจก.','Branch Manager','Manager','BC','แคชเชียร์','Cashier','BT','หัวหน้า BT','หัวหน้าBT','แม่บ้าน','พักงาน','ยังไม่เริ่มงาน'];
-  const mgr=allEmps.filter(e=>e&&['ผู้จัดการ','ผจก.','Branch Manager','Manager'].includes(e.pos));
-  const bc=allEmps.filter(e=>e&&['BC','แคชเชียร์','Cashier'].includes(e.pos));
-  const bt=allEmps.filter(e=>e&&['BT','หัวหน้า BT','หัวหน้าBT'].includes(e.pos));
-  const hk=allEmps.filter(e=>e&&e.pos==='แม่บ้าน');
-  const suspended=allEmps.filter(e=>e&&POS_SPECIAL.includes(e.pos));
-  const other=allEmps.filter(e=>e&&!POS_ALL.includes(e.pos));
+
 
   const MON_NAMES = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   const DOW_NAMES = ['อา','จ','อ','พ','พฤ','ศ','ส'];
@@ -3679,7 +3673,7 @@ const ei = realEi;
       scrollHTML += `<div class="cal-grid">`;
 scrollHTML += `<div class="cal-grid">`;
 
-let r = ''; // 🔥 ใส่ตรงนี้
+let r = '';
 
 DAYS.forEach((day,di)=>{
   const ld = getLeaveData(b.leaves,ei,di);
@@ -3693,7 +3687,7 @@ DAYS.forEach((day,di)=>{
   r += `</td>`;
 });
 
-scrollHTML += `<table><tr>${r}</tr></table>`;
+scrollHTML += `<table><tr>${r}</tr></table>`; // 🔥 สำคัญ
 scrollHTML += `</div>`;
 DAYS.forEach((day, di) => {
   const ld = getLeaveData(b.leaves, ei, di);
