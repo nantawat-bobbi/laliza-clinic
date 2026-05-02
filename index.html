@@ -334,192 +334,147 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
 .sval{font-size:21px;font-weight:800;color:var(--text);margin-top:1px;}
 .ssub{font-size:10px;color:var(--muted);}
 .content{flex:1;overflow:auto;padding:16px 20px;}
-/* ── Flex Table Layout — fixed left + scrollable calendar ── */
+/* ── Calendar Layout — single scroll container ── */
+:root {
+  --col: 28px;
+  --days: 30;
+  --left-w: 280px;
+  --info-w: 130px;
+}
+
 .table-wrapper {
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.04);
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
   overflow: hidden;
 }
 
-/* Header row */
-.cal-header {
-  display: flex;
-  flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  background: #f8fafc;
-  border-bottom: 1px solid var(--border);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-}
-/* Sub-header (day numbers) */
-.cal-subheader {
-  display: flex;
-  flex-shrink: 0;
-  position: sticky;
-  top: 42px;
-  z-index: 29;
-  background: #f8fafc;
-  border-bottom: 2px solid var(--border);
-}
-
-/* Body scroll container */
-.cal-body {
-  overflow-y: auto;
-  overflow-x: auto;
-  flex: 1;
-  min-height: 0;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Each row = flex */
-.cal-row {
+/* wrapper = flex row: fixed left + scroll right */
+.cal-container {
   display: flex;
   width: 100%;
-  border-bottom: 1px solid #f1f5f9;
-  transition: background 0.1s;
-}
-/* cal-left = fixed width, ไม่ shrink */
-.cal-left {
-  width: 280px !important;
-  min-width: 280px !important;
-  flex-shrink: 0 !important;
-}
-/* cal-right = overflow hidden, flex:1 */
-.cal-right {
-  overflow: hidden !important;
-  flex: 1 !important;
-  min-width: 0 !important;
-}
-/* cal-scroll = scroll container จริง */
-.cal-scroll {
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-  -webkit-overflow-scrolling: touch;
-}
-/* cal-grid = fixed width 840px */
-.cal-grid {
-  display: grid !important;
-  grid-template-columns: repeat(30, 28px) !important;
-  width: 840px !important;
-  min-width: 840px !important;
-}
-.cal-row:hover { background: var(--row-hover-bg); }
-.cal-row:hover .cal-left { background: var(--row-hover-bg); }
-
-/* Section divider */
-.cal-section {
-  display: flex;
-  background: #e0f2fe;
-  border-bottom: 1px solid #bae6fd;
-  padding: 4px 12px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #0369a1;
-  letter-spacing: 0.3px;
 }
 
-/* Fixed left — ชื่อ + เบอร์ */
-.cal-left {
-  display: flex;
+/* fixed left column */
+.cal-fixed {
+  width: calc(var(--left-w) + var(--info-w));
+  min-width: calc(var(--left-w) + var(--info-w));
   flex-shrink: 0;
-  width: var(--col-left, 280px);
-  background: var(--s1);
   border-right: 2px solid var(--border);
-  box-shadow: 2px 0 6px rgba(0,0,0,0.06);
+  background: var(--s1);
   position: sticky;
   left: 0;
   z-index: 10;
 }
-.cal-left-name {
-  flex: 1;
-  padding: 8px 10px;
-  border-right: 1px solid var(--border);
-  min-width: 0;
-}
-.cal-left-info {
-  width: var(--col-info, 110px);
-  flex-shrink: 0;
-  padding: 8px 10px;
-}
-
-/* Scrollable calendar right */
-
-.cal-grid {
-  display: grid;
-  grid-template-columns: repeat(30, var(--col-day, 28px));
-}
-/* Header left fixed cells */
-.cal-hdr-left {
-  width: var(--col-left, 280px);
-  flex-shrink: 0;
-  background: #f8fafc;
-  border-right: 2px solid var(--border);
+.cal-fixed-header {
   display: flex;
-}
-.cal-hdr-name {
-  flex: 1;
-  padding: 8px 10px;
+  border-bottom: 2px solid var(--border);
+  background: #f8fafc;
+  padding: 6px 10px;
   font-size: 11px;
   font-weight: 600;
   color: #6b7280;
+}
+.cal-fixed-header .h-name { flex: 1; }
+.cal-fixed-header .h-info { width: var(--info-w); border-left: 1px solid var(--border); padding-left: 8px; }
+
+.cal-fixed-row {
+  display: flex;
+  border-bottom: 1px solid #f1f5f9;
+  min-height: 52px;
+}
+.cal-fixed-row .f-name {
+  flex: 1;
+  padding: 8px 10px;
   border-right: 1px solid var(--border);
 }
-.cal-hdr-info {
-  width: var(--col-info, 110px);
-  flex-shrink: 0;
+.cal-fixed-row .f-info {
+  width: var(--info-w);
   padding: 8px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #6b7280;
 }
-/* Calendar header right */
-.cal-hdr-right {
+.cal-section-fixed {
+  padding: 4px 10px;
+  background: #e0f2fe;
+  border-bottom: 1px solid #bae6fd;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0369a1;
+}
+
+/* scroll right — single scroll container */
+.cal-scroll-outer {
   flex: 1;
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   min-width: 0;
 }
-.cal-month-row {
-  display: grid;
-  grid-template-columns: repeat(30, var(--col-day, 28px));
+
+/* grid — same class everywhere */
+.cal-grid {
+  display: grid !important;
+  grid-template-columns: repeat(var(--days), var(--col)) !important;
+  width: calc(var(--days) * var(--col)) !important; /* 840px */
+}
+.cal-grid > div {
+  width: var(--col);
+  box-sizing: border-box;
+}
+
+/* month header */
+.cal-month-header {
+  display: flex;
   background: #f8fafc;
+  border-bottom: 1px solid var(--border);
 }
 .cal-month-cell {
   padding: 4px 2px;
   font-size: 10px;
   font-weight: 600;
-  color: #475569;
   text-align: center;
   border-right: 1px solid var(--border);
 }
-.cal-day-cell {
-  width: var(--col-day, 28px);
-  min-width: var(--col-day, 28px);
-  max-width: var(--col-day, 28px);
-  min-height: 28px;
-  padding: 2px 1px;
-  text-align: center;
-  border-right: 1px solid #e2e8f0;
-  border-bottom: 1px solid #e2e8f0;
-  box-sizing: border-box;
-  cursor: pointer;
-  position: relative;
-  background: #fff;
+
+/* day header */
+.cal-day-header {
+  background: #f8fafc;
+  border-bottom: 2px solid var(--border);
 }
-.cal-day-cell.bg-sat { background: #f8fafc; }
-.cal-day-cell.bg-sun { background: #fff5f5; }
-.cal-day-cell.sun    { border-left: 2px solid rgba(220,38,38,0.2); }
-.cal-day-cell.today  { background: #fffbeb !important; border-left: 2px solid #f59e0b; border-right: 2px solid #f59e0b; }
+
+/* day cell */
+.cal-cell {
+  height: 52px;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: #fff;
+  position: relative;
+}
+.cal-cell.bg-sat { background: #f8fafc; }
+.cal-cell.bg-sun { background: #fff5f5; }
+.cal-cell.today  { background: #fffbeb !important; outline: 2px solid #f59e0b; outline-offset: -2px; }
+.cal-cell.hday   { background: #fffdf0; }
+.cal-cell.locked { cursor: default; }
+.cal-cell:hover:not(.locked) { background: #eff6ff !important; }
+
+.cal-day-cell {
+  height: 42px;
+  border-right: 1px solid #e2e8f0;
+  text-align: center;
+  padding: 3px 1px;
+  font-size: 8px;
+  background: #f8fafc;
+}
+.cal-day-cell.bg-sat { background: #f1f5f9; }
+.cal-day-cell.bg-sun { background: #fef2f2; }
+.cal-day-cell.today  { background: #fffbeb; border-bottom: 2px solid #f59e0b; }
 .cal-day-cell.hday   { background: #fffdf0; }
-.cal-day-cell.locked { cursor: default; }
-.cal-day-cell:hover:not(.locked) { background: #eff6ff !important; }
+
 .cal-leave-dot {
-  width: calc(var(--col-day, 28px) - 4px);
+  width: calc(var(--col) - 4px);
   height: 20px;
   border-radius: 3px;
   display: flex;
@@ -527,41 +482,9 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
   justify-content: center;
   font-size: 9px;
   font-weight: 700;
-  margin: 1px auto;
 }
-/* Grid — explicit per row */
-.cal-grid {
-  display: grid !important;
-  grid-template-columns: repeat(30, 28px) !important;
-  width: 840px !important; /* 30 × 28px = 840 */
-  min-width: 840px !important;
-}
-.cal-right {
-  overflow-x: auto !important;
-  -webkit-overflow-scrolling: touch;
-  flex: 1;
-  min-width: 0;
-}
-.cal-hdr-right .cal-month-row {
-  display: grid !important;
-  grid-template-columns: repeat(30, 28px) !important;
-  width: 840px !important;
-}
-table{border-collapse:collapse;width:100%;min-width:950px;}
-thead th{background:var(--s2);font-size:11px;text-align:center;border-bottom:2px solid var(--border);font-weight:600;}
-.th-month{padding:12px 14px;color:var(--text);font-size:12px;border-right:6px solid var(--border);}
-.th-dayname{font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;padding:6px 6px 2px;}
-.th-dayname.we{color:#dc2626;font-weight:700;}
-.th-daynum{font-size:11px;font-weight:700;padding:1px 1px 4px;min-width:26px;color:var(--text);}
-.th-daynum.we{color:#dc2626;font-weight:800;}
-.th-info{text-align:middle;padding:6px 10px;border-right:1px solid var(--border);color:var(--muted);font-size:16px;font-family:'IBM Plex Mono',monospace;}
-tbody tr{border-bottom:1px solid var(--border);}
-tbody tr:last-child{border-bottom:none;}
-tbody tr:hover{background:rgba(79,70,229,0.025);}
-td{padding:0;text-align:center;border-right:1px solid var(--border);vertical-align:middle;}
-td.ic{padding:10px 14px;text-align:left;border-right:1px solid var(--border);}
-td.ic .iname{font-size:14px;font-weight:700;color:var(--text);}
-td.ic .inick{font-size:12px;color:var(--muted);}
+
+/* ── Employee Row — production ── */
 /* ── Employee Row — Accessible + Production ── */
 
 /* Design tokens — single source of truth */
@@ -3633,59 +3556,64 @@ function render(){
 
   const MON_NAMES = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   const DOW_NAMES = ['อา','จ','อ','พ','พฤ','ศ','ส'];
-
-  // สร้าง header day cells
-  const dayHeaderCells = DAYS.map(day=>{
-    const hday = isHoliday(day.date, day.month);
-    const cls = [
-      'cal-day-cell',
-      day.we ? 'we' : '',
-      day.dow===0 ? 'sun' : '',
-      day.isToday ? 'today' : '',
-      hday ? 'hday' : '',
-    ].filter(Boolean).join(' ');
-    const hdotTitle = hday ? ` title="🎌 ${hday}"` : '';
-    return `<div class="${cls}"${hdotTitle}>
-      <div style="font-size:8px;color:${day.we?'#e11d48':'#64748b'}">${DOW_NAMES[day.dow]}</div>
-      <div style="font-size:9px;font-weight:700;color:${day.isToday?'#d97706':day.we?'#e11d48':'#374151'}">${day.date}</div>
-      ${hday?'<div style="font-size:7px;color:#f59e0b">🎌</div>':'<div style="height:10px"></div>'}
-    </div>`;
-  }).join('');
-
-  // month spans
   const aprCount = DAYS.filter(d=>d.month===4).length;
   const mayCount = DAYS.filter(d=>d.month===5).length;
 
-  let h = `<div class="table-wrapper">
-    <!-- Header -->
-    <div class="cal-header">
-      <div class="cal-hdr-left">
-        <div class="cal-hdr-name">ชื่อพนักงาน</div>
-        <div class="cal-hdr-info">เบอร์ / หยุดล่าสุด</div>
-      </div>
-      <div class="cal-hdr-right"><div class="cal-scroll">
-        <div class="cal-month-row">
-          ${DAYS.map((d,i)=>{
-            if(d.month===4 && (i===0 || DAYS[i-1].month!==4))
-              return `<div class="cal-month-cell" style="grid-column:span ${aprCount};background:#eef2ff;color:#3730a3;">เมษายน</div>`;
-            if(d.month===5 && (i===0 || DAYS[i-1].month!==5))
-              return `<div class="cal-month-cell" style="grid-column:span ${mayCount};background:#f0fdf4;color:#166534;">พฤษภาคม</div>`;
-            return '';
-          }).join('')}
-        </div>
-      </div></div>
-    </div>
-    <!-- Sub-header (day numbers) -->
-    <div class="cal-subheader">
-      <div class="cal-hdr-left" style="visibility:hidden;"></div>
-      <div class="cal-hdr-right"><div class="cal-scroll"><div class="cal-grid">${dayHeaderCells}</div></div></div>
-    </div>
-    <!-- Body -->
-    <div class="cal-body">`;
+  // month header row
+  const monthHeaderHTML = `<div class="cal-grid cal-month-header">
+    ${DAYS.map((d,i)=>{
+      if(i===0 || DAYS[i-1].month!==d.month){
+        const cnt = DAYS.filter(x=>x.month===d.month).length;
+        const bg = d.month===4 ? '#eef2ff' : '#f0fdf4';
+        const fg = d.month===4 ? '#3730a3' : '#166534';
+        const label = d.month===4 ? 'เมษายน' : 'พฤษภาคม';
+        return `<div class="cal-month-cell" style="grid-column:span ${cnt};background:${bg};color:${fg};">${label}</div>`;
+      }
+      return '';
+    }).join('')}
+  </div>`;
 
-  function rows(emps,label){
-    if(!emps.length) return '';
-    let r = label ? `<div class="cal-section">${label}</div>` : '';
+  // day header row
+  const dayHeaderHTML = `<div class="cal-grid cal-day-header">
+    ${DAYS.map(day=>{
+      const hday = isHoliday(day.date, day.month);
+      const cls = ['cal-day-cell', day.wkClass, day.isToday?'today':'', hday?'hday':''].filter(Boolean).join(' ');
+      return `<div class="${cls}" title="${hday?'🎌 '+hday:''}">
+        <div style="font-size:8px;color:${day.we?'#e11d48':'#64748b'}">${DOW_NAMES[day.dow]}</div>
+        <div style="font-size:10px;font-weight:700;color:${day.isToday?'#d97706':day.we?'#e11d48':'#374151'}">${day.date}</div>
+        ${hday?'<div style="font-size:8px;color:#f59e0b">🎌</div>':''}
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  let h = `<div class="table-wrapper">
+    <div class="cal-container">
+      <!-- Fixed left -->
+      <div class="cal-fixed">
+        <div class="cal-fixed-header">
+          <span class="h-name">ชื่อพนักงาน</span>
+          <span class="h-info">เบอร์ / หยุดล่าสุด</span>
+        </div>
+        <div id="calFixedBody"></div>
+      </div>
+      <!-- Scroll right — single container -->
+      <div class="cal-scroll-outer">
+        ${monthHeaderHTML}
+        ${dayHeaderHTML}
+        <div id="calScrollBody"></div>
+      </div>
+    </div>
+  </div>`;
+
+  let fixedHTML = '';
+  let scrollHTML = '';
+
+  function rows(emps, label){
+    if(!emps.length) return;
+    if(label){
+      fixedHTML += `<div class="cal-section-fixed">${label}</div>`;
+      scrollHTML += `<div class="cal-grid" style="background:#e0f2fe;min-height:26px;border-bottom:1px solid #bae6fd;"></div>`;
+    }
     emps.forEach(emp=>{
       const realEi = allEmps.indexOf(emp);
       const ei = realEi;
@@ -3716,8 +3644,8 @@ function render(){
         if(['พักงาน','ยังไม่เริ่มงาน'].includes(pos)) return 'pause';
         return 'other';
       })(emp.pos||'');
-      r += `<div class="cal-row"><div class="cal-left">
-        <div class="cal-left-name">
+      fixedHTML += `<div class="cal-fixed-row">
+        <div class="f-name">
           <div class="iname" ${nameClickable}>${emp.name||''} <span class="inick">${emp.nick||''}</span>${editBtn}</div>
           <div class="ipos" data-role="${_posRole}">${emp.pos||''}</div>
           ${balBadge}
@@ -3745,8 +3673,9 @@ function render(){
           </div>
         </div>`;
       }
-      r += `<div class="cal-left-info"><div class="iph">${emp.phone||'-'}</div>${leaveInfo}</div></div>`;
-      r += `<div class="cal-right"><div class="cal-scroll"><div class="cal-grid">`;
+      fixedHTML += `<div class="f-info"><div class="iph">${emp.phone||'-'}</div>${leaveInfo}</div>
+      </div>`;
+      scrollHTML += `<div class="cal-grid">`;
       DAYS.forEach((day,di)=>{
         const ld = getLeaveData(b.leaves,ei,di);
         const locked = !(session.isManager||session.isAdmin);
@@ -3766,9 +3695,8 @@ function render(){
         if(ld) r += `<div class="ld ${getClass(ld.code)}">${ld.code}</div>`;
         r += `</td>`;
       });
-      r += `</div></div></div></div>`;
+      scrollHTML += `</div>`;
     });
-    return r;
   }
 
   h += rows(mgr,'👑 ผู้จัดการ');
