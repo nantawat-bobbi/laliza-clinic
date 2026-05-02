@@ -1631,6 +1631,8 @@ function doLogin(){
   if(!selectedLoginBranch){ showLoginError('กรุณาเลือกสาขาก่อน'); return; }
   const pw = document.getElementById('loginPassword').value.trim();
   if(!pw){ showLoginError('กรุณาใส่รหัสผ่าน'); return; }
+  // clear session เก่าก่อนเสมอ
+  localStorage.removeItem('laliza_session');
 
   let isManager = false;
   let isAdmin = false;
@@ -1743,13 +1745,14 @@ function cleanDuplicateEmps(){
 }
 
 function startApp(){
-  // ตรวจสอบ isAdmin จาก localStorage ใหม่ทุกครั้ง
+  // restore session จาก localStorage
   try {
     const sv = localStorage.getItem('laliza_session');
     if(sv){
       const s = JSON.parse(sv);
       session.isAdmin = s.isAdmin || false;
       session.isManager = s.isManager || false;
+      session.branchId = s.branchId || session.branchId;
     }
   } catch(e){}
   document.getElementById('loginScreen').style.display = 'none';
@@ -3849,42 +3852,43 @@ function renderTableAll(){
 function updateNavForBranch(){
   const isGlobal = isGlobalBranch();
   const isHR = isHRBranch();
+  const isAdmin = session.isAdmin || false;
+  const isMgr = session.isManager || false;
 
   const show = (id, v) => { const el=document.getElementById(id); if(el) el.style.display=v?'':'none'; };
 
   if(isHR){
     show('nav-overview',false); show('nav-table',false); show('nav-tableAll',false);
     show('nav-dashboard',false); show('nav-stats',true); show('nav-docs',false);
-    show('nav-holiday', session.isAdmin);
+    show('nav-mgrleave',false); show('nav-holiday',isAdmin); show('nav-log',isAdmin); show('nav-admin',isAdmin);
     show('bn-overview',false); show('bn-table',false); show('bn-tableAll',false);
     show('bn-dashboard',false); show('bn-stats',true);
   } else if(isGlobal){
     show('nav-overview',true); show('nav-table',false); show('nav-tableAll',true);
     show('nav-dashboard',true); show('nav-mgrleave',true); show('nav-stats',true); show('nav-docs',true);
-    show('nav-holiday', session.isAdmin);
-    show('nav-log', session.isManager||session.isAdmin);
+    show('nav-holiday',isAdmin); show('nav-log',isMgr||isAdmin); show('nav-admin',isAdmin);
     show('bn-overview',true); show('bn-table',false); show('bn-tableAll',true);
     show('bn-dashboard',true); show('bn-mgrleave',true); show('bn-stats',true);
   } else {
     show('nav-overview',true); show('nav-table',true); show('nav-tableAll',false);
-    show('nav-dashboard',true); show('nav-mgrleave', session.isManager); show('nav-stats',true); show('nav-docs',true);
-    show('nav-holiday', session.isAdmin);
-    show('nav-log', session.isManager||session.isAdmin);
+    show('nav-dashboard',true); show('nav-mgrleave',isMgr||isAdmin); show('nav-stats',true); show('nav-docs',true);
+    show('nav-holiday',isAdmin); show('nav-log',isMgr||isAdmin); show('nav-admin',isAdmin);
     show('bn-overview',true); show('bn-table',true); show('bn-tableAll',false);
-    show('bn-dashboard',true); show('bn-mgrleave', session.isManager); show('bn-stats',true);
+    show('bn-dashboard',true); show('bn-mgrleave',isMgr||isAdmin); show('bn-stats',true);
   }
 
-  // แสดง bottom nav เฉพาะมือถือ
+  // bottom nav แสดงเฉพาะมือถือ
   const bn = document.getElementById('bottomNav');
   if(bn) bn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
-  window.addEventListener('resize', ()=>{
-    if(bn) bn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
-  });
 
   // mobile user info
   const b = BRANCHES.find(x=>x.id===session.branchId);
   const ui = document.getElementById('mobileUserInfo');
-  if(ui && b) ui.textContent = `${b.name} · 👑 Manager`;
+  if(ui && b) ui.textContent = `${b.name} · ${isAdmin?'⭐ Admin':isMgr?'👑 Manager':'👁️ Staff'}`;
+
+  // export button
+  const expBtn = document.getElementById('exportBtn');
+  if(expBtn) expBtn.style.display = (isMgr||isAdmin) ? '' : 'none';
 }
 
 // ══ INIT ══
