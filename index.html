@@ -2475,12 +2475,16 @@ function render(){
     <div class="stat-card" style="border-color:var(--accent)"><div class="slabel">สถานะ</div><div class="sval" style="font-size:13px;margin-top:6px">${session.isManager?'🔓 แก้ไขได้':'🔒 ดูอย่างเดียว'}</div></div>
   `;
 
-  const allEmps = b.emps || [];
-  const mgr=allEmps.filter(e=>['ผู้จัดการ','ผจก.','Branch Manager','Manager'].includes(e.pos));
-  const bc=allEmps.filter(e=>['BC','แคชเชียร์','Cashier'].includes(e.pos));
-  const bt=allEmps.filter(e=>['BT','หัวหน้า BT','หัวหน้าBT'].includes(e.pos));
-  const hk=allEmps.filter(e=>e.pos==='แม่บ้าน');
-  const other=allEmps.filter(e=>!['ผู้จัดการ','ผจก.','Branch Manager','Manager','BC','แคชเชียร์','Cashier','BT','หัวหน้า BT','หัวหน้าBT','แม่บ้าน'].includes(e.pos));
+  const allEmps = toArray(b.emps || []);
+  const bLeaves = b.leaves || {};
+  const POS_SPECIAL = ['พักงาน','ยังไม่เริ่มงาน'];
+  const POS_ALL = ['ผู้จัดการ','ผจก.','Branch Manager','Manager','BC','แคชเชียร์','Cashier','BT','หัวหน้า BT','หัวหน้าBT','แม่บ้าน','พักงาน','ยังไม่เริ่มงาน'];
+  const mgr=allEmps.filter(e=>e&&['ผู้จัดการ','ผจก.','Branch Manager','Manager'].includes(e.pos));
+  const bc=allEmps.filter(e=>e&&['BC','แคชเชียร์','Cashier'].includes(e.pos));
+  const bt=allEmps.filter(e=>e&&['BT','หัวหน้า BT','หัวหน้าBT'].includes(e.pos));
+  const hk=allEmps.filter(e=>e&&e.pos==='แม่บ้าน');
+  const suspended=allEmps.filter(e=>e&&POS_SPECIAL.includes(e.pos));
+  const other=allEmps.filter(e=>e&&!POS_ALL.includes(e.pos));
 
   let h=`<div class="table-wrapper"><div class="table-scroll"><table><thead>`;
   h+=`<tr><th class="th-info" style="min-width:150px" rowspan="2">ชื่อ</th><th class="th-info" style="min-width:90px" rowspan="2">เบอร์ / หยุดล่าสุด</th>`;
