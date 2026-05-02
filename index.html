@@ -2899,7 +2899,18 @@ function formatLeaveDate(day){
   if(!day) return '-';
   const DOW = ['อา','จ','อ','พ','พฤ','ศ','ส'];
   const MON = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-  return `${DOW[day.dow]} ${day.date} ${MON[day.month]} ${(day.year||2026)-543+543}`; // แสดงเป็น พ.ศ.
+  return `${DOW[day.dow]} ${day.date} ${MON[day.month]}`;
+}
+
+function getCurrentPeriod(today){
+  today = today || new Date();
+  const y = today.getFullYear();
+  const m = today.getMonth();
+  if(today.getDate() >= 26){
+    return { start: new Date(y, m, 26), end: new Date(y, m+1, 25) };
+  } else {
+    return { start: new Date(y, m-1, 26), end: new Date(y, m, 25) };
+  }
 }
 
 // หา last leave + count เฉพาะใน payroll period ปัจจุบัน
