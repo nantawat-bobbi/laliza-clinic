@@ -2403,7 +2403,8 @@ function renderMgrLeave(){
   const body = document.getElementById('mgrleaveBody');
   if(!body) return;
 
-
+  const MGR_POS = ['ผู้จัดการ','ผจก.','Branch Manager','Manager'];
+  const allBranches = BRANCHES.filter(b=>b.id!=='b9'&&b.id!=='b10');
 
   // รวบรวมข้อมูลการลาของผจก.ทุกสาขา
   const allLeaves = []; // {date, month, dow, dayName, code, emp, branch, branchColor}
@@ -3546,7 +3547,12 @@ function render(){
   const bLeaves = b.leaves || {};
   const POS_SPECIAL = ['พักงาน','ยังไม่เริ่มงาน'];
   const POS_ALL = ['ผู้จัดการ','ผจก.','Branch Manager','Manager','BC','แคชเชียร์','Cashier','BT','หัวหน้า BT','หัวหน้าBT','แม่บ้าน','พักงาน','ยังไม่เริ่มงาน'];
-
+  const mgr=allEmps.filter(e=>e&&['ผู้จัดการ','ผจก.','Branch Manager','Manager'].includes(e.pos));
+  const bc=allEmps.filter(e=>e&&['BC','แคชเชียร์','Cashier'].includes(e.pos));
+  const bt=allEmps.filter(e=>e&&['BT','หัวหน้า BT','หัวหน้าBT'].includes(e.pos));
+  const hk=allEmps.filter(e=>e&&e.pos==='แม่บ้าน');
+  const suspended=allEmps.filter(e=>e&&POS_SPECIAL.includes(e.pos));
+  const other=allEmps.filter(e=>e&&!POS_ALL.includes(e.pos));
 
   const MON_NAMES = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   const DOW_NAMES = ['อา','จ','อ','พ','พฤ','ศ','ส'];
@@ -3609,13 +3615,12 @@ function render(){
       scrollHTML += `<div class="cal-grid" style="background:#e0f2fe;min-height:26px;border-bottom:1px solid #bae6fd;"></div>`;
     }
     emps.forEach(emp=>{
-      const realEi = allEmps.findIndex(e => e.id === emp.id);
-if (realEi === -1) return; // กัน crash
-const ei = realEi;
+      const realEi = allEmps.indexOf(emp);
+      const ei = realEi;
       const editBtn = (session.isManager||session.isAdmin)
         ? `<button onclick="openEditEmp('${b.id}',${realEi})" style="margin-left:6px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0 2px;opacity:0.6;transition:opacity 0.15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6" title="แก้ไขข้อมูล">✏️</button>` : '';
       // Leave Balance mini badge (non-breaking — ถ้าไม่มี startDate จะไม่แสดง)
-      const _empLeaves2 = (b.leaves && (b.leaves[ei] || b.leaves[String(ei)])) || {};
+      const _empLeaves2 = (b.leaves||{})[ei]||(b.leaves||{})[String(ei)]||{};
       const _bal = getLeaveBalance(emp, _empLeaves2);
       let balBadge = '';
       if(_bal){
@@ -3671,127 +3676,39 @@ const ei = realEi;
       fixedHTML += `<div class="f-info"><div class="iph">${emp.phone||'-'}</div>${leaveInfo}</div>
       </div>`;
       scrollHTML += `<div class="cal-grid">`;
-scrollHTML += `<div class="cal-grid">`;
-
-let r = '';
-
-DAYS.forEach((day,di)=>{
-  const ld = getLeaveData(b.leaves,ei,di);
-
-  r += `<td class="dc">`;
-
-  if(ld){
-    r += `<div class="ld">${ld.code}</div>`;
-  }
-
-  r += `</td>`;
-});
-
-scrollHTML += `<table><tr>${r}</tr></table>`; // 🔥 สำคัญ
-scrollHTML += `</div>`;
-DAYS.forEach((day, di) => {
-  const ld = getLeaveData(b.leaves, ei, di);
-  const locked = !(session.isManager || session.isAdmin);
-
-  const _MS=['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-  const _DS=['(อา)','(จ)','(อ)','(พ)','(พฤ)','(ศ)','(ส)'];
-  const _dateStr=`${_DS[day.dow]}${day.date} ${_MS[day.month]} 69`;
-
-  const _hname=isHoliday(day.date,day.month);
-  const _hval=_hname?HOLIDAYS[String(day.date)+'/'+String(day.month)]:null;
-  const _htag=_hval&&typeof _hval==='object'?_hval.tag:'national';
-  const _hlabel=_htag==='office'?'🏢 Office หยุด':'🎌 หยุดนักขัตฤกษ์';
-
-  let tip=_hname?`${_hlabel}: ${_hname}\n`:'';
-
-  if(ld){
-    const _t=TYPES.find(t=>t.code===ld.code);
-    tip+=`${emp.name||''} ${emp.nick||''}\n📅 ${_dateStr}\n${_t?_t.icon:''} ${ld.code} - ${_t?_t.label:'วันหยุด'}`;
-    if(ld.note) tip+=`\n💬 ${ld.note}`;
-  } else {
-    tip+=`📅 ${_dateStr}`;
-  }
-
-  const isSun = day.dow===0;
-  const isHday = !!_hname;
-
-  scrollHTML += `<div class="cell dc ${day.wkClass} ${isSun?'sun':''} ${isHday?'holiday-col':''} ${day.isToday?'today-col':''} ${locked?'locked':''}" 
-    ${locked ? '' : `onclick="openLeaveModal('${b.id}',${ei},${di})"`} 
-    title="${tip}">`;
-
-  if(ld){
-    scrollHTML += `<div class="ld ${getClass(ld.code)}">${ld.code}</div>`;
-  }
-
-  scrollHTML += `</div>`;
-});
-
-scrollHTML += `</div>`;
+      DAYS.forEach((day,di)=>{
+        const ld = getLeaveData(b.leaves,ei,di);
+        const locked = !(session.isManager||session.isAdmin);
+        const _MS=['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+        const _DS=['(อา)','(จ)','(อ)','(พ)','(พฤ)','(ศ)','(ส)'];
+        const _dateStr=`${_DS[day.dow]}${day.date} ${_MS[day.month]} 69`;
+        const _hname=isHoliday(day.date,day.month);
+        const _hval=_hname?HOLIDAYS[String(day.date)+'/'+String(day.month)]:null;
+        const _htag=_hval&&typeof _hval==='object'?_hval.tag:'national';
+        const _hlabel=_htag==='office'?'🏢 Office หยุด':'🎌 หยุดนักขัตฤกษ์';
+        let tip=_hname?`${_hlabel}: ${_hname}\n`:'';
+        if(ld){const _t=TYPES.find(t=>t.code===ld.code);tip+=`${emp.name||''} ${emp.nick||''}\n📅 ${_dateStr}\n${_t?_t.icon:''} ${ld.code} - ${_t?_t.label:'วันหยุด'}`;if(ld.note)tip+=`\n💬 ${ld.note}`;}
+        else{tip+=`📅 ${_dateStr}`;}
+        const isSun=day.dow===0;
+        const isHday=!!_hname;
+        r += `<td class="dc ${day.wkClass} ${isSun?'sun':''} ${isHday?'holiday-col':''} ${day.isToday?'today-col':''} ${locked?'locked':''}" ${locked?'':` onclick="openLeaveModal('${b.id}',${ei},${di})"`} title="${tip}">`;
+        if(ld) r += `<div class="ld ${getClass(ld.code)}">${ld.code}</div>`;
+        r += `</td>`;
+      });
+      scrollHTML += `</div>`;
     });
   }
 
-// 🔥 GROUP EMPLOYEES (เวอร์ชันถูกต้อง)
+  rows(mgr,'👑 ผู้จัดการ');
+  rows(bc,'💼 BC / แคชเชียร์');
+  rows(bt,'✂️ BT');
+  rows(hk,'🧹 แม่บ้าน');
+  rows(other,'');
+  rows(suspended,'⏸️ พักงาน / ยังไม่เริ่มงาน');
 
-const mgr = [];
-const bc = [];
-const bt = [];
-const hk = [];
-const other = [];
-const suspended = [];
-
-allEmps.forEach(emp => {
-  console.log("EMP POS:", emp.pos); // debug
-
-  const pos = (emp.pos || '').trim();
-
-  if (['Branch Manager','Manager','ผู้จัดการ','ผจก.'].includes(pos)) {
-    mgr.push(emp);
-  } else if (['BC','แคชเชียร์','Cashier'].includes(pos)) {
-    bc.push(emp);
-  } else if (['BT','หัวหน้า BT','หัวหน้าBT'].includes(pos)) {
-    bt.push(emp);
-  } else if (pos === 'แม่บ้าน') {
-    hk.push(emp);
-  } else if (['พักงาน','ยังไม่เริ่มงาน'].includes(pos)) {
-    suspended.push(emp);
-  } else {
-    other.push(emp);
-  }
-});
-
-// 🔍 debug
-console.log("ALL POS:", allEmps.map(e => e.pos));
-console.log("mgr:", mgr.length, "bc:", bc.length, "bt:", bt.length);
-
-rows(mgr,'👑 ผู้จัดการ');
-rows(bc,'💼 BC / แคชเชียร์');
-rows(bt,'✂️ BT');
-rows(hk,'🧹 แม่บ้าน');
-rows(other,'');
-rows(suspended,'⏸️ พักงาน / ยังไม่เริ่มงาน');
-
-// inject HTML เข้า h
-h += `
-  <div class="cal-fixed">${fixedHTML}</div>
-  <div class="cal-scroll">${scrollHTML}</div>
-`;
-
-h += `</div></div>`; // ปิด cal-body + wrapper
-
-// 🔥 DEBUG ก่อน render
-console.log("RENDER START");
-console.log("fixed:", fixedHTML.length, "scroll:", scrollHTML.length);
-
-// 🔥 render ครั้งเดียวพอ
-try {
+  h += `</div></div>`; // end cal-body + table-wrapper
   document.getElementById('mainContent').innerHTML = h;
-} catch (e) {
-  console.error("🔥 RENDER ERROR:", e);
-  alert(e.message);
 }
-
-console.log("RENDER DONE");
-
 
 // ══════════════════════════════════════════
 // EDIT BRANCH NAME
