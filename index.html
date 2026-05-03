@@ -3527,16 +3527,141 @@ function hideLtsTooltip(){
   if(tip) tip.remove();
 
 function render(){
-  // --- 1. ตรวจสอบสิทธิ์การเข้าถึง (ถ้ายังไม่ Login ให้หยุดทำงานทันที หน้า Login จะไม่พัง) ---
+  // --- 1. เช็คสิทธิ์ก่อนอันดับแรก ---
   const b = BRANCHES.find(x=>x.id===session.branchId);
+  
+  // ถ้ายังไม่ได้เลือกสาขา (หน้า Login) ให้หยุดทำงานทันที และไม่ต้องไปแตะต้องหน้าจอ
   if(!b) return; 
 
-  // --- 2. ถ้า Login แล้ว ให้จัดการลบตารางเก่าก่อนวาดใหม่ ---
-  const oldTable = document.getElementById('tableContainer');
-  if(oldTable) oldTable.remove();
+  // --- 2. ถ้าเลือกสาขาแล้ว (Login แล้ว) ถึงจะเริ่มทำงานต่อ ---
+  // เช็คว่ามี tableContainer หรือยัง ถ้ายังไม่มีให้สร้าง (วิธีนี้จะไม่ไปทับ Dropdown สาขาแน่นอน)
+  let tableContainer = document.getElementById('tableContainer');
+  if(!tableContainer){
+    document.getElementById('mainContent').insertAdjacentHTML('beforeend', `<div id="tableContainer"></div>`);
+    tableContainer = document.getElementById('tableContainer');
+  }
 
-  // --- 3. ดึงชื่อสาขามาโชว์ ---
+  // อัปเดตชื่อสาขาและสถิติ
   document.getElementById('branchNameText').textContent = b.name;
+  const tl = totalLeavesCount(b);
+  document.getElementById('statsRow').innerHTML=`
+    <div class="stat-card"><div class="slabel">พนักงาน</div><div class="sval">${toArray(b.emps||[]).length}</div><div class="ssub">คน</div></div>
+    <div class="stat-card"><div class="slabel">ลาเดือนนี้</div><div class="sval" style="color:var(--red)">${tl}</div><div class="ssub">ครั้ง</div></div>
+    <div class="stat-card"><div class="slabel">วันหยุด/เดือน</div><div class="sval">5</div><div class="ssub">วัน</div></div>
+    <div class="stat-card" style="border-color:var(--accent)"><div class="slabel">สถานะ</div><div class="sval" style="font-size:13px;margin-top:6px">${session.isManager?'🔓 แก้ไขได้':'🔒 ดูอย่างเดียว'}</div></div>
+  `;
+
+  // --- 3. เตรียมโครงสร้างตาราง (ตัวแปร h และการคำนวณ emps เหมือนเดิมที่คุณมี) ---
+  const allEmps = toArray(b.emps || []);
+  const bLeaves = b.leaves || {};
+  const MON_NAMES = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const DOW_NAMES = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+
+  // ... (ใส่ส่วนสร้าง monthHeaderHTML และ dayHeaderHTML ของคุณตรงนี้) ...
+  const monthHeaderHTML = `<div class="cal-grid cal-month-header" style="width: max-content; min-width: 100%;">
+    ${DAYS.map((d,i)=>{
+      if(i===0 || DAYS[i-1].month!==d.month){
+        const cnt = DAYS.filter(x=>x.month===d.month).length;
+        const bg = d.month===4 ? '#eef2ff' : '#f0fdf4';
+        const fg = d.month===4 ? '#3730a3' : '#166534';
+        const label = d.month===4 ? 'เมษายน' : 'พฤษภาคม';
+        return `<div class="cal-month-cell" style="grid-column:span ${cnt};background:${bg};color:${fg};">${label}</div>`;
+      }
+      return '';
+    }).join('')}
+  </div>`;
+
+  const dayHeaderHTML = `<div class="cal-grid cal-day-header" style="width: max-content; min-width: 100%;">
+    ${DAYS.map(day=>{
+      const hday = isHoliday(day.date, day.month);
+      const cls = ['cal-day-cell', day.wkClass, day.isToday?'today':'', hday?'hday':''].filter(Boolean).join(' ');
+      return `<div class="${cls}" title="${hday?'🎌 '+hday:''}">
+        <div style="font-size:8px;color:${day.we?'#e11d48':'#64748b'}">${DOW_NAMES[day.dow]}</div>
+        <div style="font-size:10px;font-weight:700;color:${day.isToday?'#d97706':day.we?'#e11d48':'#374151'}">${day.date}</div>
+        ${hday?'<div style="font-size:8px;color:#f59e0b">🎌</div>':''}
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  let h = `<div class="cal-container" style="display: flex; overflow: hidden; height: auto;">
+      <div class="cal-fixed" style="width: 300px; flex-shrink: 0; border-right: 2px solid var(--border); display: flex; flex-direction: column;">
+        <div class="cal-fixed-header" style="height: 60px; padding: 10px; background: #f8fafc; border-bottom: 2px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-size: 11px; font-weight: 800;">ชื่อพนักงาน</span>
+          <span style="font-size: 11px; font-weight: 800;">เบอร์ / หยุดล่าสุด</span>
+        </div>
+        <div id="calFixedBody"></div>
+      </div>
+      <div class="cal-scroll-outer" style="flex: 1; overflow: auto;">
+        <div style="position: sticky; top: 0; z-index: 20; background: #fff;">
+          ${monthHeaderHTML}
+          ${dayHeaderHTML}
+        </div>
+        <div id="calScrollBody"></div>
+      </div>
+    </div>`;
+
+  // วาดโครงสร้างหลักลงใน tableContainer
+  tableContainer.innerHTML = h;
+
+  let fixedHTML = '';
+  let scrollHTML = '';
+
+  // ฟังก์ชัน rows(...) ของคุณ
+  function rows(emps, label){
+    if(!emps.length) return;
+    if(label){
+      fixedHTML += `<div class="cal-section" style="background:#e0f2fe; padding:6px 12px; font-size:11px; font-weight:700; color:#0369a1; border-bottom:1px solid #bae6fd;">${label}</div>`;
+      scrollHTML += `<div class="cal-grid" style="background:#e0f2fe; min-height:28px; border-bottom:1px solid #bae6fd; width: max-content; min-width: 100%;"></div>`;
+    }
+    emps.forEach(emp=>{
+      const ei = allEmps.indexOf(emp);
+      const empLeaves = bLeaves[ei] || bLeaves[String(ei)] || {};
+      const { lastDay } = getLastLeaveInfo(empLeaves);
+      const MON_S = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+      fixedHTML += `<div class="cal-row" style="display:flex; border-bottom:1px solid #f1f5f9; min-height:65px; align-items: center; padding: 5px 0;">
+        <div style="flex:1; padding: 0 10px; border-right: 1px solid var(--border);">
+          <div class="iname" style="font-size:13px; font-weight:700;">${emp.name||''} <span style="font-weight:400; color:var(--muted)">${emp.nick||''}</span></div>
+          <div style="font-size:10px; color:var(--accent);">${emp.pos||''}</div>
+        </div>
+        <div style="width:110px; padding: 0 10px; font-size:11px;">
+          <div style="color:var(--muted)">${emp.phone||'-'}</div>
+          <div style="font-weight:600;">📅 ${lastDay ? `${lastDay.date} ${MON_S[lastDay.month]}` : '-'}</div>
+        </div>
+      </div>`;
+
+      scrollHTML += `<div class="cal-grid" style="display: flex; width: max-content; border-bottom: 1px solid #f1f5f9;">`;
+      DAYS.forEach((day,di)=>{
+        const ld = getLeaveData(bLeaves,ei,di);
+        const locked = !(session.isManager||session.isAdmin);
+        const _cls = ['cal-cell', day.wkClass, day.dow===0?'sun':'', isHoliday(day.date,day.month)?'hday':'', day.isToday?'today':'', locked?'locked':''].filter(Boolean).join(' ');
+        scrollHTML += `<div class="${_cls}" style="width:28px; height:65px; display:flex; align-items:center; justify-content:center; flex-shrink:0; border-right:1px solid #f1f5f9;" ${locked ? '' : `onclick="openLeaveModal('${b.id}',${ei},${di})"`}>`;
+        if(ld) scrollHTML += `<div class="cal-leave-dot ${getClass(ld.code)}">${ld.code}</div>`;
+        scrollHTML += `</div>`;
+      });
+      scrollHTML += `</div>`;
+    });
+  }
+
+  const POS_SPECIAL = ['พักงาน','ยังไม่เริ่มงาน'];
+  const POS_ALL = ['ผู้จัดการ','ผจก.','Branch Manager','Manager','BC','แคชเชียร์','Cashier','BT','หัวหน้า BT','หัวหน้าBT','แม่บ้าน','พักงาน','ยังไม่เริ่มงาน'];
+  rows(allEmps.filter(e=>e&&['ผู้จัดการ','ผจก.','Branch Manager','Manager'].includes(e.pos)), '👑 ผู้จัดการ');
+  rows(allEmps.filter(e=>e&&['BC','แคชเชียร์','Cashier'].includes(e.pos)), '💼 BC / แคชเชียร์');
+  rows(allEmps.filter(e=>e&&['BT','หัวหน้า BT','หัวหน้าBT'].includes(e.pos)), '✂️ BT');
+  rows(allEmps.filter(e=>e&&e.pos==='แม่บ้าน'), '🧹 แม่บ้าน');
+
+  // แปะข้อมูลพนักงานลงใน Body ที่สร้างไว้
+  document.getElementById('calFixedBody').innerHTML = fixedHTML;
+  document.getElementById('calScrollBody').innerHTML = scrollHTML;
+
+  // Sync การเลื่อน
+  const sOuter = document.getElementById('calScrollBody').parentElement;
+  const fBody = document.getElementById('calFixedBody');
+  if(sOuter && fBody) {
+    sOuter.onscroll = () => { fBody.scrollTop = sOuter.scrollTop; };
+    fBody.onscroll = () => { sOuter.scrollTop = fBody.scrollTop; };
+  }
+}
 
   const tl = totalLeavesCount(b);
   document.getElementById('statsRow').innerHTML=`
