@@ -3526,10 +3526,6 @@ function hideLtsTooltip(){
   const tip = document.getElementById('ltsTooltip');
   if(tip) tip.remove();
 }
-
-// ══════════════════════════════════════════
-// TABLE RENDER
-// ══════════════════════════════════════════
 function render(){
   const b = BRANCHES.find(x=>x.id===session.branchId);
   if(!b) return;
@@ -3556,11 +3552,9 @@ function render(){
 
   const MON_NAMES = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   const DOW_NAMES = ['อา','จ','อ','พ','พฤ','ศ','ส'];
-  const aprCount = DAYS.filter(d=>d.month===4).length;
-  const mayCount = DAYS.filter(d=>d.month===5).length;
 
-  // month header row
-  const monthHeaderHTML = `<div class="cal-grid cal-month-header">
+  // ✅ เพิ่ม style="width: max-content" ที่ Header ด้วย
+  const monthHeaderHTML = `<div class="cal-grid cal-month-header" style="width: max-content; min-width: 100%;">
     ${DAYS.map((d,i)=>{
       if(i===0 || DAYS[i-1].month!==d.month){
         const cnt = DAYS.filter(x=>x.month===d.month).length;
@@ -3573,8 +3567,7 @@ function render(){
     }).join('')}
   </div>`;
 
-  // day header row
-  const dayHeaderHTML = `<div class="cal-grid cal-day-header">
+  const dayHeaderHTML = `<div class="cal-grid cal-day-header" style="width: max-content; min-width: 100%;">
     ${DAYS.map(day=>{
       const hday = isHoliday(day.date, day.month);
       const cls = ['cal-day-cell', day.wkClass, day.isToday?'today':'', hday?'hday':''].filter(Boolean).join(' ');
@@ -3588,7 +3581,6 @@ function render(){
 
   let h = `<div class="table-wrapper">
     <div class="cal-container">
-      <!-- Fixed left -->
       <div class="cal-fixed">
         <div class="cal-fixed-header">
           <span class="h-name">ชื่อพนักงาน</span>
@@ -3596,7 +3588,6 @@ function render(){
         </div>
         <div id="calFixedBody"></div>
       </div>
-      <!-- Scroll right — single container -->
       <div class="cal-scroll-outer">
         ${monthHeaderHTML}
         ${dayHeaderHTML}
@@ -3612,21 +3603,20 @@ function render(){
     if(!emps.length) return;
     if(label){
       fixedHTML += `<div class="cal-section-fixed">${label}</div>`;
-      scrollHTML += `<div class="cal-grid" style="background:#e0f2fe;min-height:26px;border-bottom:1px solid #bae6fd;"></div>`;
+      // ✅ เพิ่ม style กันหดที่แถบสีฟ้า
+      scrollHTML += `<div class="cal-grid" style="background:#e0f2fe;min-height:26px;border-bottom:1px solid #bae6fd; width: max-content; min-width: 100%;"></div>`;
     }
     emps.forEach(emp=>{
       const realEi = allEmps.indexOf(emp);
       const ei = realEi;
       const editBtn = (session.isManager||session.isAdmin)
         ? `<button onclick="openEditEmp('${b.id}',${realEi})" style="margin-left:6px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0 2px;opacity:0.6;transition:opacity 0.15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6" title="แก้ไขข้อมูล">✏️</button>` : '';
-      // Leave Balance mini badge (non-breaking — ถ้าไม่มี startDate จะไม่แสดง)
+      
       const _empLeaves2 = (b.leaves||{})[ei]||(b.leaves||{})[String(ei)]||{};
       const _bal = getLeaveBalance(emp, _empLeaves2);
       let balBadge = '';
       if(_bal){
-        const annualUsed = _bal['พร']?.used||0;
-        const annualEnt = _bal['พร']?.entitled||6;
-        const annualRem = Math.max(annualEnt-annualUsed,0);
+        const annualRem = Math.max((_bal['พร']?.entitled||6)-(_bal['พร']?.used||0),0);
         const sickUsed = _bal['ลป']?.used||0;
         const color = annualRem===0?'#ef4444':annualRem<=1?'#f59e0b':'#10b981';
         balBadge = `<div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap;">
@@ -3634,8 +3624,7 @@ function render(){
           <span style="background:#ef444422;color:#ef4444;border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;border:1px solid #ef444444;">ลป ${sickUsed}/30วัน</span>
         </div>`;
       }
-      const nameClickable = `onclick="showLeaveBalancePopup('${b.id}',${ei})" style="cursor:pointer;" title="กดเพื่อดู Leave Balance"`;
-      // map pos → role for styling
+
       const _posRole = (pos=>{
         if(['Branch Manager','Manager','ผู้จัดการ','ผจก.'].includes(pos)) return 'manager';
         if(['BC','แคชเชียร์','Cashier'].includes(pos)) return 'bc';
@@ -3644,56 +3633,41 @@ function render(){
         if(['พักงาน','ยังไม่เริ่มงาน'].includes(pos)) return 'pause';
         return 'other';
       })(emp.pos||'');
+
       fixedHTML += `<div class="cal-fixed-row">
         <div class="f-name">
-          <div class="iname" ${nameClickable}>${emp.name||''} <span class="inick">${emp.nick||''}</span>${editBtn}</div>
+          <div class="iname" onclick="showLeaveBalancePopup('${b.id}',${ei})" style="cursor:pointer;">${emp.name||''} <span class="inick">${emp.nick||''}</span>${editBtn}</div>
           <div class="ipos" data-role="${_posRole}">${emp.pos||''}</div>
           ${balBadge}
           ${emp.note?`<div style="font-size:10px;color:var(--muted);margin-top:1px">📝 ${emp.note}</div>`:''}
         </div>`;
-      // หาวันหยุดล่าสุด — ใช้ getLastLeaveInfo (single dataset, consistent)
-      const _bl = b.leaves||{};
-      const empLeaves = _bl[ei]||_bl[String(ei)]||{};
-      const { lastDay, count: leaveCount, label, isFrequent } = getLastLeaveInfo(empLeaves);
+
+      const empLeaves = (b.leaves||{})[ei]||(b.leaves||{})[String(ei)]||{};
+      const { lastDay, count: leaveCount, label: lLabel, isFrequent } = getLastLeaveInfo(empLeaves);
       const MON_S = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 
-      let leaveInfo = '';
-      if(leaveCount === 0 || !label || label.type === 'none'){
-        leaveInfo = `<div class="last-past" style="font-size:11px;margin-top:2px;">ยังไม่มีข้อมูล</div>`;
-      } else {
-        const dateShort = lastDay ? `${lastDay.date} ${MON_S[lastDay.month]}` : '-';
-        const freqBadge = isFrequent
-          ? `<span style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:600;margin-left:4px;">หยุดถี่</span>`
-          : '';
-        leaveInfo = `<div style="margin-top:3px;line-height:1.5;">
-          <div style="font-size:12px;font-weight:600;color:var(--text);">📅 ${dateShort}</div>
-          <div style="display:flex;align-items:center;gap:4px;margin-top:2px;flex-wrap:wrap;">
-            <span class="last-${label.type}" style="font-size:11px;">${label.text}</span>
-            ${freqBadge}
-          </div>
-        </div>`;
-      }
-      fixedHTML += `<div class="f-info"><div class="iph">${emp.phone||'-'}</div>${leaveInfo}</div>
-      </div>`;
+      let leaveInfo = (leaveCount === 0 || !lLabel || lLabel.type === 'none') 
+        ? `<div class="last-past" style="font-size:11px;margin-top:2px;">ยังไม่มีข้อมูล</div>`
+        : `<div style="margin-top:3px;line-height:1.5;">
+            <div style="font-size:12px;font-weight:600;color:var(--text);">📅 ${lastDay ? `${lastDay.date} ${MON_S[lastDay.month]}` : '-'}</div>
+            <div style="display:flex;align-items:center;gap:4px;margin-top:2px;flex-wrap:wrap;">
+              <span class="last-${lLabel.type}" style="font-size:11px;">${lLabel.text}</span>
+              ${isFrequent ? `<span style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:600;margin-left:4px;">หยุดถี่</span>` : ''}
+            </div>
+          </div>`;
+
+      fixedHTML += `<div class="f-info"><div class="iph">${emp.phone||'-'}</div>${leaveInfo}</div></div>`;
+      
+      // ✅ ใส่ width: max-content กันตารางหด
       scrollHTML += `<div class="cal-grid" style="width: max-content; min-width: 100%;">`;
       DAYS.forEach((day,di)=>{
         const ld = getLeaveData(b.leaves,ei,di);
         const locked = !(session.isManager||session.isAdmin);
-        const _MS=['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-        const _DS=['(อา)','(จ)','(อ)','(พ)','(พฤ)','(ศ)','(ส)'];
-        const _dateStr=`${_DS[day.dow]}${day.date} ${_MS[day.month]} 69`;
-        const _hname=isHoliday(day.date,day.month);
-        const _hval=_hname?HOLIDAYS[String(day.date)+'/'+String(day.month)]:null;
-        const _htag=_hval&&typeof _hval==='object'?_hval.tag:'national';
-        const _hlabel=_htag==='office'?'🏢 Office หยุด':'🎌 หยุดนักขัตฤกษ์';
-        let tip=_hname?`${_hlabel}: ${_hname}\n`:'';
-        if(ld){const _t=TYPES.find(t=>t.code===ld.code);tip+=`${emp.name||''} ${emp.nick||''}\n📅 ${_dateStr}\n${_t?_t.icon:''} ${ld.code} - ${_t?_t.label:'วันหยุด'}`;if(ld.note)tip+=`\n💬 ${ld.note}`;}
-        else{tip+=`📅 ${_dateStr}`;}
         const isSun=day.dow===0;
-        const isHday=!!_hname;
+        const isHday=!!isHoliday(day.date,day.month);
         const _cls = ['cal-cell', day.wkClass, isSun?'sun':'', isHday?'hday':'', day.isToday?'today':'', locked?'locked':''].filter(Boolean).join(' ');
-        const _click = locked ? '' : ` onclick="openLeaveModal('${b.id}',${ei},${di})"`;
-        scrollHTML += `<div class="${_cls}"${_click} title="${tip}">`;
+        
+        scrollHTML += `<div class="${_cls}" ${locked ? '' : `onclick="openLeaveModal('${b.id}',${ei},${di})"`}>`;
         if(ld) scrollHTML += `<div class="cal-leave-dot ${getClass(ld.code)}">${ld.code}</div>`;
         scrollHTML += `</div>`;
       });
@@ -3701,6 +3675,7 @@ function render(){
     });
   }
 
+  // เรียกใช้ rows
   rows(mgr,'👑 ผู้จัดการ');
   rows(bc,'💼 BC / แคชเชียร์');
   rows(bt,'✂️ BT');
@@ -3708,8 +3683,12 @@ function render(){
   rows(other,'');
   rows(suspended,'⏸️ พักงาน / ยังไม่เริ่มงาน');
 
-  h += `</div></div>`; // end cal-body + table-wrapper
+  // ✅ ใส่โครงสร้างหลักเข้าไปก่อน
   document.getElementById('mainContent').innerHTML = h;
+  
+  // ✅ สำคัญมาก: ต้องใส่ข้อมูลที่สร้างขึ้นเข้าไปใน ID ที่เตรียมไว้
+  document.getElementById('calFixedBody').innerHTML = fixedHTML;
+  document.getElementById('calScrollBody').innerHTML = scrollHTML;
 }
 
 // ══════════════════════════════════════════
