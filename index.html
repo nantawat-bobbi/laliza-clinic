@@ -515,7 +515,7 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
 }
 
 td.ic {
-  padding: 10px 14px !important;
+  padding: 6px 8px !important;
   vertical-align: middle;
   border-bottom: 1px solid var(--border);
 }
@@ -3577,8 +3577,8 @@ function render(){
   // Header row 1 — ชื่อ / เบอร์ / เดือน
   const insightLegend = `past=วันที่ผ่านมา | today=วันนี้ | future=วันที่กำลังจะมา | หยุดถี่=เฉลี่ย>2ครั้ง/สัปดาห์`;
   h += `<tr>
-    <th class="th-info" style="min-width:160px" rowspan="2">ชื่อพนักงาน</th>
-    <th class="th-info" style="min-width:110px" rowspan="2">เบอร์ / หยุดล่าสุด <span style="font-size:9px;color:var(--muted);cursor:help" title="${insightLegend}">ℹ️</span></th>
+    <th class="th-info" style="min-width:130px;max-width:160px" rowspan="2">ชื่อพนักงาน</th>
+    <th class="th-info" style="min-width:90px;max-width:110px" rowspan="2">เบอร์ / หยุดล่าสุด <span style="font-size:9px;color:var(--muted);cursor:help" title="${insightLegend}">ℹ️</span></th>
     <th class="th-month" colspan="${aprDays.length}">เมษายน</th>
     <th class="th-month" colspan="${mayDays.length}">พฤษภาคม</th>
   </tr><tr>`;
