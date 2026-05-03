@@ -3525,10 +3525,13 @@ function showLtsTooltip(el, title, peopleStr){
 function hideLtsTooltip(){
   const tip = document.getElementById('ltsTooltip');
   if(tip) tip.remove();
-function render(){
-  // ✅ จุดวางที่ 1: วางต่อจากชื่อฟังก์ชันเลย
+
+  function render(){
+  const b = BRANCHES.find(x=>x.id===session.branchId);
+  if(!b) return; // ✅ บรรทัดนี้จะกู้หน้า Login กลับมาทันที!
+  
   const oldTable = document.getElementById('tableContainer');
-  if(oldTable) oldTable.remove(); 
+  if(oldTable) oldTable.remove();
 
   const b = BRANCHES.find(x=>x.id===session.branchId);
   // ... โค้ดเดิมยาวลงไป ...
@@ -3604,7 +3607,7 @@ function render(){
   </div>`;
 
   // ✅ จุดวางที่ 2: วางแทนที่บรรทัด innerHTML เดิม
-  document.getElementById('mainContent').insertAdjacentHTML('beforeend', `<div id="tableContainer">${h}</div>`);
+  document.getElementById('mainContent').insertAdjacentHTML('beforeend', ${h});
 
   let fixedHTML = '';
   let scrollHTML = '';
