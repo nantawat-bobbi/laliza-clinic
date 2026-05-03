@@ -355,7 +355,8 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
   width: 100%;
 }
 .table-scroll table {
-  width: max-content;
+  width: 100%;
+  min-width: max-content;
   border-collapse: collapse;
   table-layout: auto;
 }
@@ -3592,7 +3593,13 @@ function render(){
   const mayDays = DAYS.filter(d=>d.month===5);
 
   // ── Build table ──
-  let h = `<div class="table-wrapper"><div class="table-scroll"><table><thead>`;
+  // colgroup กำหนด width ทุก column — source of truth
+  const colDefs = `<colgroup>
+    <col style="width:130px;min-width:130px;max-width:130px">
+    <col style="width:90px;min-width:90px;max-width:90px">
+    ${DAYS.map(()=>'<col style="width:28px;min-width:28px;max-width:28px">').join('')}
+  </colgroup>`;
+  let h = `<div class="table-wrapper"><div class="table-scroll"><table>${colDefs}<thead>`;
 
   // Header row 1 — ชื่อ / เบอร์ / เดือน
   const insightLegend = `past=วันที่ผ่านมา | today=วันนี้ | future=วันที่กำลังจะมา | หยุดถี่=เฉลี่ย>2ครั้ง/สัปดาห์`;
@@ -3609,7 +3616,7 @@ function render(){
     const hday = isHoliday(day.date, day.month);
     const hdotTitle = hday ? ` title="🎌 ${hday}"` : '';
     const todayCls = day.isToday ? 'today-col' : '';
-    h += `<th class="${todayCls}" style="width:28px;min-width:28px;max-width:28px;${sunBorder}">
+    h += `<th class="${todayCls}" style="${sunBorder}">
       <div class="th-dayname ${day.we?'we':''}">${day.name}</div>
       <div class="th-daynum ${day.we?'we':''} ${hday?'holiday':''}">${day.date}</div>
       <div class="holiday-dot ${hday?'visible':''}"${hdotTitle}></div>
@@ -3653,7 +3660,7 @@ function render(){
       })(emp.pos||'');
 
       const nameClick = `onclick="showLeaveBalancePopup('${b.id}',${ei})" style="cursor:pointer" title="ดู Leave Balance"`;
-      r += `<tr><td class="ic" style="width:130px;min-width:130px;max-width:130px;">
+      r += `<tr><td class="ic">
         <div class="iname" ${nameClick}>${emp.name||''} <span class="inick">${emp.nick||''}</span>${editBtn}</div>
         <div class="ipos" data-role="${posRole}">${emp.pos||''}</div>
         ${balBadge}
@@ -3679,7 +3686,7 @@ function render(){
           </div>
         </div>`;
       }
-      r += `<td class="ic" style="width:90px;min-width:90px;max-width:90px;"><div class="iph">${emp.phone||'-'}</div>${leaveInfo}</td>`;
+      r += `<td class="ic"><div class="iph">${emp.phone||'-'}</div>${leaveInfo}</td>`;
 
       // Calendar cells — iterate DAYS เป็น source of truth
       DAYS.forEach((day,di)=>{
