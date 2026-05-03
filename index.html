@@ -3525,7 +3525,6 @@ function showLtsTooltip(el, title, peopleStr){
 function hideLtsTooltip(){
   const tip = document.getElementById('ltsTooltip');
   if(tip) tip.remove();
-}
 function render(){
   const b = BRANCHES.find(x=>x.id===session.branchId);
   if(!b) return;
@@ -3533,7 +3532,7 @@ function render(){
 
   const tl = totalLeavesCount(b);
   document.getElementById('statsRow').innerHTML=`
-    <div class="stat-card"><div class="slabel">พนักงาน</div><div class="sval">${b.emps.length}</div><div class="ssub">คน</div></div>
+    <div class="stat-card"><div class="slabel">พนักงาน</div><div class="sval">${toArray(b.emps||[]).length}</div><div class="ssub">คน</div></div>
     <div class="stat-card"><div class="slabel">ลาเดือนนี้</div><div class="sval" style="color:var(--red)">${tl}</div><div class="ssub">ครั้ง</div></div>
     <div class="stat-card"><div class="slabel">วันหยุด/เดือน</div><div class="sval">5</div><div class="ssub">วัน</div></div>
     <div class="stat-card" style="border-color:var(--accent)"><div class="slabel">สถานะ</div><div class="sval" style="font-size:13px;margin-top:6px">${session.isManager?'🔓 แก้ไขได้':'🔒 ดูอย่างเดียว'}</div></div>
@@ -3553,7 +3552,6 @@ function render(){
   const MON_NAMES = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   const DOW_NAMES = ['อา','จ','อ','พ','พฤ','ศ','ส'];
 
-  // ✅ เพิ่ม style="width: max-content" ที่ Header ด้วย
   const monthHeaderHTML = `<div class="cal-grid cal-month-header" style="width: max-content; min-width: 100%;">
     ${DAYS.map((d,i)=>{
       if(i===0 || DAYS[i-1].month!==d.month){
@@ -3579,22 +3577,27 @@ function render(){
     }).join('')}
   </div>`;
 
+  // --- ส่วนโครงสร้างหน้าจอหลัก ---
   let h = `<div class="table-wrapper">
-    <div class="cal-container">
-      <div class="cal-fixed">
-        <div class="cal-fixed-header">
-          <span class="h-name">ชื่อพนักงาน</span>
-          <span class="h-info">เบอร์ / หยุดล่าสุด</span>
+    <div class="cal-container" style="display: flex; overflow: hidden; height: 100%;">
+      <div class="cal-fixed" style="width: 300px; flex-shrink: 0; border-right: 2px solid var(--border); display: flex; flex-direction: column;">
+        <div class="cal-fixed-header" style="height: 60px; padding: 10px; background: #f8fafc; border-bottom: 2px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-size: 11px; font-weight: 800;">ชื่อพนักงาน</span>
+          <span style="font-size: 11px; font-weight: 800;">เบอร์ / หยุดล่าสุด</span>
         </div>
-        <div id="calFixedBody"></div>
+        <div id="calFixedBody" style="flex: 1; overflow-y: auto; overflow-x: hidden;"></div>
       </div>
-      <div class="cal-scroll-outer">
-        ${monthHeaderHTML}
-        ${dayHeaderHTML}
-        <div id="calScrollBody"></div>
+      <div class="cal-scroll-outer" style="flex: 1; overflow: auto; display: flex; flex-direction: column;">
+        <div style="position: sticky; top: 0; z-index: 20; background: #fff;">
+          ${monthHeaderHTML}
+          ${dayHeaderHTML}
+        </div>
+        <div id="calScrollBody" style="flex: 1;"></div>
       </div>
     </div>
   </div>`;
+
+  document.getElementById('mainContent').innerHTML = h;
 
   let fixedHTML = '';
   let scrollHTML = '';
@@ -3602,72 +3605,34 @@ function render(){
   function rows(emps, label){
     if(!emps.length) return;
     if(label){
-      fixedHTML += `<div class="cal-section-fixed">${label}</div>`;
-      // ✅ เพิ่ม style กันหดที่แถบสีฟ้า
-      scrollHTML += `<div class="cal-grid" style="background:#e0f2fe;min-height:26px;border-bottom:1px solid #bae6fd; width: max-content; min-width: 100%;"></div>`;
+      fixedHTML += `<div class="cal-section" style="background:#e0f2fe; padding:6px 12px; font-size:11px; font-weight:700; color:#0369a1; border-bottom:1px solid #bae6fd;">${label}</div>`;
+      scrollHTML += `<div class="cal-grid" style="background:#e0f2fe; min-height:28px; border-bottom:1px solid #bae6fd; width: max-content; min-width: 100%;"></div>`;
     }
     emps.forEach(emp=>{
-      const realEi = allEmps.indexOf(emp);
-      const ei = realEi;
-      const editBtn = (session.isManager||session.isAdmin)
-        ? `<button onclick="openEditEmp('${b.id}',${realEi})" style="margin-left:6px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0 2px;opacity:0.6;transition:opacity 0.15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6" title="แก้ไขข้อมูล">✏️</button>` : '';
-      
-      const _empLeaves2 = (b.leaves||{})[ei]||(b.leaves||{})[String(ei)]||{};
-      const _bal = getLeaveBalance(emp, _empLeaves2);
-      let balBadge = '';
-      if(_bal){
-        const annualRem = Math.max((_bal['พร']?.entitled||6)-(_bal['พร']?.used||0),0);
-        const sickUsed = _bal['ลป']?.used||0;
-        const color = annualRem===0?'#ef4444':annualRem<=1?'#f59e0b':'#10b981';
-        balBadge = `<div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap;">
-          <span style="background:${color}22;color:${color};border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;border:1px solid ${color}44;">พร ${annualRem}วันคงเหลือ</span>
-          <span style="background:#ef444422;color:#ef4444;border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;border:1px solid #ef444444;">ลป ${sickUsed}/30วัน</span>
-        </div>`;
-      }
-
-      const _posRole = (pos=>{
-        if(['Branch Manager','Manager','ผู้จัดการ','ผจก.'].includes(pos)) return 'manager';
-        if(['BC','แคชเชียร์','Cashier'].includes(pos)) return 'bc';
-        if(['BT','หัวหน้า BT','หัวหน้าBT'].includes(pos)) return 'bt';
-        if(pos==='แม่บ้าน') return 'hk';
-        if(['พักงาน','ยังไม่เริ่มงาน'].includes(pos)) return 'pause';
-        return 'other';
-      })(emp.pos||'');
-
-      fixedHTML += `<div class="cal-fixed-row">
-        <div class="f-name">
-          <div class="iname" onclick="showLeaveBalancePopup('${b.id}',${ei})" style="cursor:pointer;">${emp.name||''} <span class="inick">${emp.nick||''}</span>${editBtn}</div>
-          <div class="ipos" data-role="${_posRole}">${emp.pos||''}</div>
-          ${balBadge}
-          ${emp.note?`<div style="font-size:10px;color:var(--muted);margin-top:1px">📝 ${emp.note}</div>`:''}
-        </div>`;
-
-      const empLeaves = (b.leaves||{})[ei]||(b.leaves||{})[String(ei)]||{};
-      const { lastDay, count: leaveCount, label: lLabel, isFrequent } = getLastLeaveInfo(empLeaves);
+      const ei = allEmps.indexOf(emp);
+      const editBtn = (session.isManager||session.isAdmin) ? `<button onclick="openEditEmp('${b.id}',${ei})" style="border:none; background:none; cursor:pointer; opacity:0.5;">✏️</button>` : '';
+      const empLeaves = bLeaves[ei] || bLeaves[String(ei)] || {};
+      const _bal = getLeaveBalance(emp, empLeaves);
+      const { lastDay, label: lLabel } = getLastLeaveInfo(empLeaves);
       const MON_S = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 
-      let leaveInfo = (leaveCount === 0 || !lLabel || lLabel.type === 'none') 
-        ? `<div class="last-past" style="font-size:11px;margin-top:2px;">ยังไม่มีข้อมูล</div>`
-        : `<div style="margin-top:3px;line-height:1.5;">
-            <div style="font-size:12px;font-weight:600;color:var(--text);">📅 ${lastDay ? `${lastDay.date} ${MON_S[lastDay.month]}` : '-'}</div>
-            <div style="display:flex;align-items:center;gap:4px;margin-top:2px;flex-wrap:wrap;">
-              <span class="last-${lLabel.type}" style="font-size:11px;">${lLabel.text}</span>
-              ${isFrequent ? `<span style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:600;margin-left:4px;">หยุดถี่</span>` : ''}
-            </div>
-          </div>`;
+      fixedHTML += `<div class="cal-row" style="display:flex; border-bottom:1px solid #f1f5f9; min-height:65px; align-items: center; padding: 5px 0;">
+        <div style="flex:1; padding: 0 10px; border-right: 1px solid var(--border);">
+          <div class="iname" style="font-size:13px; font-weight:700;">${emp.name||''} <span style="font-weight:400; color:var(--muted)">${emp.nick||''}</span> ${editBtn}</div>
+          <div style="font-size:10px; color:var(--accent);">${emp.pos||''}</div>
+        </div>
+        <div style="width:110px; padding: 0 10px; font-size:11px;">
+          <div style="color:var(--muted)">${emp.phone||'-'}</div>
+          <div style="font-weight:600;">📅 ${lastDay ? `${lastDay.date} ${MON_S[lastDay.month]}` : '-'}</div>
+        </div>
+      </div>`;
 
-      fixedHTML += `<div class="f-info"><div class="iph">${emp.phone||'-'}</div>${leaveInfo}</div></div>`;
-      
-      // ✅ ใส่ width: max-content กันตารางหด
-      scrollHTML += `<div class="cal-grid" style="width: max-content; min-width: 100%;">`;
+      scrollHTML += `<div class="cal-grid" style="width: max-content; min-width: 100%; border-bottom: 1px solid #f1f5f9;">`;
       DAYS.forEach((day,di)=>{
-        const ld = getLeaveData(b.leaves,ei,di);
+        const ld = getLeaveData(bLeaves,ei,di);
         const locked = !(session.isManager||session.isAdmin);
-        const isSun=day.dow===0;
-        const isHday=!!isHoliday(day.date,day.month);
-        const _cls = ['cal-cell', day.wkClass, isSun?'sun':'', isHday?'hday':'', day.isToday?'today':'', locked?'locked':''].filter(Boolean).join(' ');
-        
-        scrollHTML += `<div class="${_cls}" ${locked ? '' : `onclick="openLeaveModal('${b.id}',${ei},${di})"`}>`;
+        const _cls = ['cal-cell', day.wkClass, day.dow===0?'sun':'', isHoliday(day.date,day.month)?'hday':'', day.isToday?'today':'', locked?'locked':''].filter(Boolean).join(' ');
+        scrollHTML += `<div class="${_cls}" style="width:28px; height:65px; display:flex; align-items:center; justify-content:center; border-right:1px solid #f1f5f9;" ${locked ? '' : `onclick="openLeaveModal('${b.id}',${ei},${di})"`}>`;
         if(ld) scrollHTML += `<div class="cal-leave-dot ${getClass(ld.code)}">${ld.code}</div>`;
         scrollHTML += `</div>`;
       });
@@ -3675,20 +3640,21 @@ function render(){
     });
   }
 
-  // เรียกใช้ rows
   rows(mgr,'👑 ผู้จัดการ');
   rows(bc,'💼 BC / แคชเชียร์');
   rows(bt,'✂️ BT');
   rows(hk,'🧹 แม่บ้าน');
   rows(other,'');
-  rows(suspended,'⏸️ พักงาน / ยังไม่เริ่มงาน');
+  rows(suspended,'⏸️ พักงาน');
 
-  // ✅ ใส่โครงสร้างหลักเข้าไปก่อน
-  document.getElementById('mainContent').innerHTML = h;
-  
-  // ✅ สำคัญมาก: ต้องใส่ข้อมูลที่สร้างขึ้นเข้าไปใน ID ที่เตรียมไว้
   document.getElementById('calFixedBody').innerHTML = fixedHTML;
   document.getElementById('calScrollBody').innerHTML = scrollHTML;
+
+  // Sync การ Scroll ระหว่างซ้ายกับขวา
+  const sBody = document.getElementById('calScrollBody').parentElement;
+  const fBody = document.getElementById('calFixedBody');
+  sBody.onscroll = () => { fBody.scrollTop = sBody.scrollTop; };
+  fBody.onscroll = () => { sBody.scrollTop = fBody.scrollTop; };
 }
 
 // ══════════════════════════════════════════
