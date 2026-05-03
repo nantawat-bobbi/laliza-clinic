@@ -3675,7 +3675,7 @@ function render(){
       }
       fixedHTML += `<div class="f-info"><div class="iph">${emp.phone||'-'}</div>${leaveInfo}</div>
       </div>`;
-      scrollHTML += `<div class="cal-grid">`;
+      scrollHTML += `<div class="cal-grid" style="width: max-content; min-width: 100%;">`;
       DAYS.forEach((day,di)=>{
         const ld = getLeaveData(b.leaves,ei,di);
         const locked = !(session.isManager||session.isAdmin);
