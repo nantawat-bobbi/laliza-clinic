@@ -3526,17 +3526,16 @@ function hideLtsTooltip(){
   const tip = document.getElementById('ltsTooltip');
   if(tip) tip.remove();
 
-  function render(){
+function render(){
+  // --- 1. ตรวจสอบสิทธิ์การเข้าถึง (ถ้ายังไม่ Login ให้หยุดทำงานทันที หน้า Login จะไม่พัง) ---
   const b = BRANCHES.find(x=>x.id===session.branchId);
-  if(!b) return; // ✅ บรรทัดนี้จะกู้หน้า Login กลับมาทันที!
-  
+  if(!b) return; 
+
+  // --- 2. ถ้า Login แล้ว ให้จัดการลบตารางเก่าก่อนวาดใหม่ ---
   const oldTable = document.getElementById('tableContainer');
   if(oldTable) oldTable.remove();
 
-  const b = BRANCHES.find(x=>x.id===session.branchId);
-  // ... โค้ดเดิมยาวลงไป ...
-  const b = BRANCHES.find(x=>x.id===session.branchId);
-  if(!b) return;
+  // --- 3. ดึงชื่อสาขามาโชว์ ---
   document.getElementById('branchNameText').textContent = b.name;
 
   const tl = totalLeavesCount(b);
