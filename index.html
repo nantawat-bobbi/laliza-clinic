@@ -3527,8 +3527,13 @@ function hideLtsTooltip(){
   if(tip) tip.remove();
 
 function render(){
-  // เช็ค session ก่อนเลย ถ้าไม่มี branchId ให้หยุดกะทันหัน
+  // ✅ ต้องอยู่บรรทัดแรกสุดแบบนี้เลยครับ!
   if (!session || !session.branchId) return; 
+
+  const b = BRANCHES.find(x => x.id === session.branchId);
+  if (!b) return;
+  
+  // ... โค้ดส่วนอื่นๆ ...
 
   const b = BRANCHES.find(x => x.id === session.branchId);
   if (!b) return;
@@ -3725,13 +3730,14 @@ function render(){
  // --- จุดกู้ชีพหน้า Login ---
   let tableContainer = document.getElementById('tableContainer');
   
-  // ถ้ายังไม่มีกล่องเก็บตาราง ให้สร้างใหม่ต่อท้าย (จะไม่ทับ Dropdown สาขา)
+  // --- 2. จัดการพื้นที่แสดงผล (สร้างกล่องแยก ไม่ให้ทับหน้า Login) ---
+  let tableContainer = document.getElementById('tableContainer');
   if(!tableContainer){
     document.getElementById('mainContent').insertAdjacentHTML('beforeend', `<div id="tableContainer"></div>`);
     tableContainer = document.getElementById('tableContainer');
   }
-  
-  // วาดตาราง h ลงในกล่องแยก
+
+  // วาดโครงสร้างหลัก h ลงในกล่องแยก
   tableContainer.innerHTML = h;
 
   let fixedHTML = '';
@@ -3743,6 +3749,36 @@ function render(){
       fixedHTML += `<div class="cal-section" style="background:#e0f2fe; padding:6px 12px; font-size:11px; font-weight:700; color:#0369a1; border-bottom:1px solid #bae6fd;">${label}</div>`;
       scrollHTML += `<div class="cal-grid" style="background:#e0f2fe; min-height:28px; border-bottom:1px solid #bae6fd;"></div>`;
     }
+    emps.forEach(emp=>{
+      const ei = allEmps.indexOf(emp);
+      const editBtn = (session.isManager||session.isAdmin) ? `<button onclick="openEditEmp('${b.id}',${ei})" style="border:none; background:none; cursor:pointer; opacity:0.5;">✏️</button>` : '';
+      const empLeaves = bLeaves[ei] || bLeaves[String(ei)] || {};
+      const { lastDay } = getLastLeaveInfo(empLeaves);
+      const MON_S = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+      fixedHTML += `<div class="cal-row" style="display:flex; border-bottom:1px solid #f1f5f9; min-height:65px; align-items: center; padding: 5px 0;">
+        <div style="flex:1; padding: 0 10px; border-right: 1px solid var(--border);">
+          <div class="iname" style="font-size:13px; font-weight:700;">${emp.name||''} <span style="font-weight:400; color:var(--muted)">${emp.nick||''}</span> ${editBtn}</div>
+          <div style="font-size:10px; color:var(--accent);">${emp.pos||''}</div>
+        </div>
+        <div style="width:110px; padding: 0 10px; font-size:11px;">
+          <div style="color:var(--muted)">${emp.phone||'-'}</div>
+          <div style="font-weight:600;">📅 ${lastDay ? `${lastDay.date} ${MON_S[lastDay.month]}` : '-'}</div>
+        </div>
+      </div>`;
+
+      scrollHTML += `<div class="cal-grid" style="display: flex; border-bottom: 1px solid #f1f5f9;">`;
+      DAYS.forEach((day,di)=>{
+        const ld = getLeaveData(bLeaves,ei,di);
+        const locked = !(session.isManager||session.isAdmin);
+        const _cls = ['cal-cell', day.wkClass, day.dow===0?'sun':'', isHoliday(day.date,day.month)?'hday':'', day.isToday?'today':'', locked?'locked':''].filter(Boolean).join(' ');
+        scrollHTML += `<div class="${_cls}" style="width:28px; height:65px; display:flex; align-items:center; justify-content:center; flex-shrink:0; border-right:1px solid #f1f5f9;" ${locked ? '' : `onclick="openLeaveModal('${b.id}',${ei},${di})"`}>`;
+        if(ld) scrollHTML += `<div class="cal-leave-dot ${getClass(ld.code)}">${ld.code}</div>`;
+        scrollHTML += `</div>`;
+      });
+      scrollHTML += `</div>`;
+    });
+  }
     emps.forEach(emp=>{
       const ei = allEmps.indexOf(emp);
       const editBtn = (session.isManager||session.isAdmin) ? `<button onclick="openEditEmp('${b.id}',${ei})" style="border:none; background:none; cursor:pointer; opacity:0.5;">✏️</button>` : '';
