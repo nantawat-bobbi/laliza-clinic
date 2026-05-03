@@ -3708,8 +3708,12 @@ function render(){
   rows(other,'');
   rows(suspended,'⏸️ พักงาน / ยังไม่เริ่มงาน');
 
-  h += `</div></div>`; // end cal-body + table-wrapper
   document.getElementById('mainContent').innerHTML = h;
+  // inject หลัง innerHTML เพราะ element ถูกสร้างแล้ว
+  const _fixedEl = document.getElementById('calFixedBody');
+  const _scrollEl = document.getElementById('calScrollBody');
+  if(_fixedEl) _fixedEl.innerHTML = fixedHTML;
+  if(_scrollEl) _scrollEl.innerHTML = scrollHTML;
 }
 
 // ══════════════════════════════════════════
