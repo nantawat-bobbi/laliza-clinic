@@ -3526,6 +3526,12 @@ function hideLtsTooltip(){
   const tip = document.getElementById('ltsTooltip');
   if(tip) tip.remove();
 function render(){
+  // ✅ จุดวางที่ 1: วางต่อจากชื่อฟังก์ชันเลย
+  const oldTable = document.getElementById('tableContainer');
+  if(oldTable) oldTable.remove(); 
+
+  const b = BRANCHES.find(x=>x.id===session.branchId);
+  // ... โค้ดเดิมยาวลงไป ...
   const b = BRANCHES.find(x=>x.id===session.branchId);
   if(!b) return;
   document.getElementById('branchNameText').textContent = b.name;
@@ -3597,7 +3603,8 @@ function render(){
     </div>
   </div>`;
 
-  document.getElementById('mainContent').innerHTML = h;
+  // ✅ จุดวางที่ 2: วางแทนที่บรรทัด innerHTML เดิม
+  document.getElementById('mainContent').insertAdjacentHTML('beforeend', `<div id="tableContainer">${h}</div>`);
 
   let fixedHTML = '';
   let scrollHTML = '';
@@ -3647,15 +3654,18 @@ function render(){
   rows(other,'');
   rows(suspended,'⏸️ พักงาน');
 
+ // --- วางทับแถบดำได้เลย ---
   document.getElementById('calFixedBody').innerHTML = fixedHTML;
   document.getElementById('calScrollBody').innerHTML = scrollHTML;
 
   // Sync การ Scroll ระหว่างซ้ายกับขวา
-  const sBody = document.getElementById('calScrollBody').parentElement;
+  const sOuter = document.getElementById('calScrollBody').parentElement;
   const fBody = document.getElementById('calFixedBody');
-  sBody.onscroll = () => { fBody.scrollTop = sBody.scrollTop; };
-  fBody.onscroll = () => { sBody.scrollTop = fBody.scrollTop; };
-}
+  if(sOuter && fBody) {
+    sOuter.onscroll = () => { fBody.scrollTop = sOuter.scrollTop; };
+    fBody.onscroll = () => { sOuter.scrollTop = fBody.scrollTop; };
+  }
+} // ปิดท้ายด้วยปีกกาปิดของฟังก์ชัน render
 
 // ══════════════════════════════════════════
 // EDIT BRANCH NAME
