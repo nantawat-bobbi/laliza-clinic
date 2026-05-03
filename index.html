@@ -3606,7 +3606,7 @@ function render(){
     if(!emps.length) return;
     if(label){
       fixedHTML += `<div class="cal-section" style="background:#e0f2fe; padding:6px 12px; font-size:11px; font-weight:700; color:#0369a1; border-bottom:1px solid #bae6fd;">${label}</div>`;
-      scrollHTML += `<div class="cal-grid" style="background:#e0f2fe; min-height:28px; border-bottom:1px solid #bae6fd; width: max-content; min-width: 100%;"></div>`;
+      scrollHTML += `<div class="cal-grid" style="background:#e0f2fe; min-height:28px; border-bottom:1px solid #bae6fd;"></div>`;
     }
     emps.forEach(emp=>{
       const ei = allEmps.indexOf(emp);
@@ -3627,7 +3627,7 @@ function render(){
         </div>
       </div>`;
 
-      scrollHTML += `<div class="cal-grid" style="width: max-content; min-width: 100%; border-bottom: 1px solid #f1f5f9;">`;
+    scrollHTML += `<div class="cal-grid" style="display: flex; border-bottom: 1px solid #f1f5f9;">`;
       DAYS.forEach((day,di)=>{
         const ld = getLeaveData(bLeaves,ei,di);
         const locked = !(session.isManager||session.isAdmin);
