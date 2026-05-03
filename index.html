@@ -3654,7 +3654,7 @@ function render(){
       })(emp.pos||'');
 
       const nameClick = `onclick="showLeaveBalancePopup('${b.id}',${ei})" style="cursor:pointer" title="ดู Leave Balance"`;
-      r += `<tr><td class="ic">
+      r += `<tr><td class="ic" style="width:130px;min-width:130px;max-width:130px;">
         <div class="iname" ${nameClick}>${emp.name||''} <span class="inick">${emp.nick||''}</span>${editBtn}</div>
         <div class="ipos" data-role="${posRole}">${emp.pos||''}</div>
         ${balBadge}
@@ -3680,7 +3680,7 @@ function render(){
           </div>
         </div>`;
       }
-      r += `<td class="ic"><div class="iph">${emp.phone||'-'}</div>${leaveInfo}</td>`;
+      r += `<td class="ic" style="width:90px;min-width:90px;max-width:90px;"><div class="iph">${emp.phone||'-'}</div>${leaveInfo}</td>`;
 
       // Calendar cells — iterate DAYS เป็น source of truth
       DAYS.forEach((day,di)=>{
