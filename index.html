@@ -352,12 +352,33 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
 .table-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  max-width: 100%;
+  width: 100%;
 }
 .table-scroll table {
   width: 100%;
   min-width: max-content;
   border-collapse: collapse;
+  table-layout: auto;
+}
+/* Fixed left columns */
+.table-scroll table th:nth-child(1),
+.table-scroll table td:nth-child(1) {
+  width: 130px !important;
+  min-width: 130px !important;
+  max-width: 130px !important;
+}
+.table-scroll table th:nth-child(2),
+.table-scroll table td:nth-child(2) {
+  width: 90px !important;
+  min-width: 90px !important;
+  max-width: 90px !important;
+}
+/* Calendar columns flex-grow */
+.table-scroll table th:nth-child(n+3),
+.table-scroll table td:nth-child(n+3) {
+  width: 28px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
 }
 
 /* wrapper = flex row: fixed left + scroll right */
