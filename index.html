@@ -3593,13 +3593,13 @@ function render(){
   const mayDays = DAYS.filter(d=>d.month===5);
 
   // ── Build table ──
-  // colgroup กำหนด width ทุก column — source of truth
+  // colgroup — fixed left 2 cols, date cols fill remaining width
   const colDefs = `<colgroup>
-    <col style="width:130px;min-width:130px;max-width:130px">
-    <col style="width:90px;min-width:90px;max-width:90px">
-    ${DAYS.map(()=>'<col style="width:28px;min-width:28px;max-width:28px">').join('')}
+    <col style="width:130px">
+    <col style="width:90px">
+    ${DAYS.map(()=>'<col style="min-width:28px">').join('')}
   </colgroup>`;
-  let h = `<div class="table-wrapper"><div class="table-scroll"><table>${colDefs}<thead>`;
+  let h = `<div class="table-wrapper"><div class="table-scroll"><table style="table-layout:fixed;width:100%;min-width:${130+90+(28*DAYS.length)}px;border-collapse:collapse;">${colDefs}<thead>`;
 
   // Header row 1 — ชื่อ / เบอร์ / เดือน
   const insightLegend = `past=วันที่ผ่านมา | today=วันนี้ | future=วันที่กำลังจะมา | หยุดถี่=เฉลี่ย>2ครั้ง/สัปดาห์`;
