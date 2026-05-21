@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>LALIZA Operations Portal - Table UI</title>
+<title>LALIZA Operations Portal - Final Table</title>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
@@ -16,85 +16,47 @@
      1. CORE SYSTEM & LAYOUT
   ========================================== */
   :root {
-    --bg-main: #e2e8f0;
-    --sidebar-bg: #0F172A;
-    --primary: #4F46E5;
-    --text-blue: #1D4ED8; /* สีน้ำเงินสำหรับข้อมูลที่กรอก */
-    --text-red: #DC2626;  /* สีแดงสำหรับหมายเหตุ/สาเหตุ */
-    --font-ui: 'Sarabun', sans-serif;
-    --font-data: 'IBM Plex Mono', monospace;
+    --bg-main: #e2e8f0; --sidebar-bg: #0F172A; --primary: #4F46E5;
+    --text-blue: #1D4ED8; /* สีน้ำเงินสากล */
+    --text-red: #DC2626;  /* สีแดงเตือนความจำ */
+    --font-ui: 'Sarabun', sans-serif; --font-data: 'IBM Plex Mono', monospace;
   }
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: var(--font-ui); background: var(--bg-main); color: #000; overflow-x: hidden; }
 
-  /* --- โครงสร้าง 2 คอลัมน์ (Sidebar + Main) --- */
   .app { display: flex; min-height: 100vh; }
-  
-  .sidebar {
-    width: 260px; background: var(--sidebar-bg); color: #fff; padding: 24px;
-    display: flex; flex-direction: column; flex-shrink: 0;
-  }
-  .logo-box {
-    display: flex; align-items: center; gap: 12px; margin-bottom: 40px;
-    font-size: 24px; font-weight: 800; letter-spacing: 1px;
-  }
-  .logo-icon {
-    background: var(--primary); color: #fff; width: 36px; height: 36px;
-    display: grid; place-items: center; border-radius: 8px;
-  }
-  .nav-btn {
-    background: transparent; color: #94a3b8; border: none; padding: 12px 16px;
-    border-radius: 8px; text-align: left; font-size: 15px; font-weight: 500;
-    cursor: pointer; margin-bottom: 8px; font-family: var(--font-ui);
-    transition: 0.2s;
-  }
+  .sidebar { width: 260px; background: var(--sidebar-bg); color: #fff; padding: 24px; display: flex; flex-direction: column; flex-shrink: 0; }
+  .logo-box { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; font-size: 24px; font-weight: 800; letter-spacing: 1px; }
+  .logo-icon { background: var(--primary); color: #fff; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px; }
+  .nav-btn { background: transparent; color: #94a3b8; border: none; padding: 12px 16px; border-radius: 8px; text-align: left; font-size: 15px; font-weight: 500; cursor: pointer; margin-bottom: 8px; font-family: var(--font-ui); transition: 0.2s; }
   .nav-btn:hover { background: #1e293b; color: #fff; }
   .nav-btn.active { background: var(--primary); color: #fff; }
 
   .main { flex-grow: 1; padding: 30px; display: flex; flex-direction: column; align-items: center; overflow-y: auto;}
 
   /* ==========================================
-     2. แถบเครื่องมือ & กระดาษ (PAPER UI)
+     2. PAPER UI (กระดาษ A4 แนวนอน)
   ========================================== */
-  .toolbar {
-    width: 100%; max-width: 1150px; display: flex; justify-content: space-between;
-    align-items: center; margin-bottom: 20px;
-  }
+  .toolbar { width: 100%; max-width: 1150px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
   .btn-group { display: flex; gap: 10px; }
-  .btn {
-    padding: 10px 20px; border-radius: 8px; border: none; font-size: 14px;
-    font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;
-    font-family: var(--font-ui); transition: 0.2s;
-  }
+  .btn { padding: 10px 20px; border-radius: 8px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: var(--font-ui); transition: 0.2s; }
   .btn-export { background: #10B981; color: white; }
   .btn-print { background: var(--primary); color: white; }
+  .btn-save { background: #0F172A; color: white; }
   .btn:hover { filter: brightness(1.1); }
 
-  /* --- ส่วนของกระดาษ (A4 แนวนอนจำลอง) --- */
-  .paper {
-    background: #fff; width: 1122px; /* กว้างประมาณ A4 แนวนอน */
-    min-height: 790px; padding: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    border-radius: 4px; position: relative;
-  }
+  .paper { background: #fff; width: 1122px; padding: 30px 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 4px; position: relative; }
 
-  /* ==========================================
-     3. การจัดรูปแบบในกระดาษ (ตรงตามรูปภาพ 100%)
-  ========================================== */
-  .paper-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; }
+  .paper-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 15px; }
   .paper-title { font-size: 24px; font-weight: 800; }
   
-  .inline-input {
-    border: none; border-bottom: 1px dotted #ccc; background: transparent;
-    font-family: var(--font-ui); font-size: 15px; color: var(--text-blue) !important;
-    outline: none; padding: 2px 4px;
-  }
+  .inline-input { border: none; border-bottom: 1px dotted #ccc; background: transparent; font-family: var(--font-ui); font-size: 14px; color: var(--text-blue) !important; outline: none; padding: 2px 4px; }
   .inline-input:focus { border-bottom: 1px solid var(--primary); background: #F8FAFC;}
 
   /* --- ตารางหลัก --- */
-  .main-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-  .main-table th, .main-table td { border: 1px solid #000; padding: 6px 8px; vertical-align: middle; }
-  .main-table th { background: #fff; text-align: center; font-weight: 700; font-size: 14px; }
+  .main-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+  .main-table th, .main-table td { border: 1px solid #000; padding: 4px 6px; vertical-align: middle; }
+  .main-table th { background: #f0f0f0; text-align: center; font-weight: 700; font-size: 13px; }
   
   .bg-gray { background-color: #E5E7EB !important; -webkit-print-color-adjust: exact; }
   .text-center { text-align: center; }
@@ -102,28 +64,26 @@
   .text-bold { font-weight: 700; }
   .text-red { color: red !important; font-weight: 700; }
 
-  /* ช่องกรอกตัวเลขในตาราง */
-  .cell-input {
-    width: 100%; border: none; background: transparent; font-family: var(--font-data);
-    font-size: 15px; font-weight: 600; text-align: right; color: var(--text-blue) !important;
-    outline: none; padding: 4px; border-radius: 4px;
-  }
+  .cell-input { width: 100%; border: none; background: transparent; font-family: var(--font-data); font-size: 14px; font-weight: 600; text-align: right; color: var(--text-blue) !important; outline: none; padding: 2px 4px; border-radius: 4px; }
   .cell-input:hover { background: #FEF08A; cursor: text; }
   .cell-input:focus { background: #EEF2FF; }
   
-  /* ซ่อนลูกศรขึ้นลงในช่องตัวเลข */
-  input[type=number]::-webkit-inner-spin-button, 
-  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+  /* --- โซนแอปพลิเคชัน (HDmall/Gowabi) --- */
+  .app-zone { font-size: 12px; line-height: 1.6; text-align: left; }
+  .app-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+  .app-input { width: 45px; text-align: center; border: 1px solid #ccc; font-family: var(--font-data); font-size: 12px; color: var(--text-blue)!important;}
+  .app-amt { width: 65px; text-align: right; }
 
   /* --- ตาราง Footer --- */
   .footer-table { width: 100%; border-collapse: collapse; }
-  .footer-table td { border: 1px solid #000; padding: 10px; vertical-align: top; height: 60px;}
-  
+  .footer-table td { border: 1px solid #000; padding: 8px; vertical-align: top; height: 50px;}
   textarea.inline-input { width: 100%; resize: none; border: none; color: var(--text-red) !important; }
   .input-reason { color: var(--text-red) !important; width: 100%; }
 
   /* ==========================================
-     4. PRINT MEDIA QUERY (ปรับ UI ตอนกด Print ให้สวย)
+     3. PRINT MEDIA QUERY (ปรับ UI ให้เต็ม A4 แนวนอน)
   ========================================== */
   @media print {
     @page { size: A4 landscape; margin: 8mm; }
@@ -131,12 +91,10 @@
     .sidebar, .toolbar, .no-print { display: none !important; }
     .main { padding: 0; }
     .paper { width: 100%; padding: 0; box-shadow: none; border-radius: 0; min-height: auto; }
-    
-    /* บังคับพิมพ์สีพื้นหลัง */
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    
     .cell-input:hover, .cell-input:focus { background: transparent; }
     .inline-input { border-bottom: 1px dotted #ccc; }
+    .app-input { border: none; border-bottom: 1px dotted #ccc; }
     input::placeholder, textarea::placeholder { color: transparent !important; }
   }
 </style>
@@ -153,31 +111,29 @@
       <button class="nav-btn active">📊 ระบบกรอกข้อมูล (Table UI)</button>
       <button class="nav-btn">☎️ Confirm Tracking</button>
       <button class="nav-btn">👨‍⚕️ Doctor Finance</button>
-      <button class="nav-btn">🧾 Billing KPI</button>
     </nav>
-    <div style="margin-top: auto; font-size: 12px; color: #475569;">LALIZA Portal v12<br>Landscape Edition</div>
+    <div style="margin-top: auto; font-size: 12px; color: #475569;">LALIZA Portal v13<br>Landscape Edition</div>
   </aside>
 
   <main class="main">
-    
     <div class="toolbar no-print">
       <div>
         <h2 style="font-size: 24px; font-weight: 800;">Daily Revenue</h2>
-        <p style="color: #64748B; font-size: 14px;">คลิกที่ช่องว่างในตารางเพื่อพิมพ์ตัวเลข</p>
+        <p style="color: #64748B; font-size: 14px;">(ตัวหนังสือสีน้ำเงิน / หมายเหตุสีแดง / คำนวณแอปพลิเคชันอัตโนมัติ)</p>
       </div>
       <div class="btn-group">
         <button class="btn btn-export" onclick="exportPNG()">🖼️ Export PNG</button>
-        <button class="btn btn-print" onclick="window.print()">🖨️ พิมพ์เอกสาร (Print / PDF)</button>
+        <button class="btn btn-print" onclick="window.print()">🖨️ พิมพ์ / Save PDF</button>
+        <button class="btn btn-save" onclick="alert('ระบบ Save พร้อมเชื่อมต่อฐานข้อมูลในขั้นตอนต่อไปครับ')">💾 บันทึก (Save)</button>
       </div>
     </div>
 
     <div class="paper" id="captureArea">
-      
       <div class="paper-header">
         <div class="paper-title">ใบสรุปยอดแคชเชียร์และบัตรเครดิต</div>
         <div>
           <span style="font-weight: 600;">สาขา</span> 
-          <select class="inline-input text-bold" style="width: 180px; font-size: 16px; cursor: pointer;">
+          <select class="inline-input text-bold" style="width: 180px; font-size: 15px; cursor: pointer;">
             <option>เซ็นทรัลพระราม 9</option>
             <option>ซีคอนบางแค</option>
             <option>เซ็นทรัลปิ่นเกล้า</option>
@@ -185,35 +141,35 @@
         </div>
       </div>
       
-      <div style="display: flex; gap: 30px; margin-bottom: 15px; font-weight: 600;">
-        <div>ประจำวันที่ <input type="date" class="inline-input" style="width: 140px;"></div>
-        <div>แพทย์คนที่ 1 <input type="text" class="inline-input" style="width: 200px;" placeholder="ระบุชื่อแพทย์..."></div>
-        <div>แพทย์คนที่ 2 <input type="text" class="inline-input" style="width: 200px;" placeholder="ระบุชื่อแพทย์ (ถ้ามี)..."></div>
+      <div style="display: flex; gap: 30px; margin-bottom: 10px; font-weight: 600; font-size: 14px;">
+        <div>ประจำวันที่ <input type="date" class="inline-input" style="width: 130px;"></div>
+        <div>แพทย์คนที่ 1 <input type="text" class="inline-input" style="width: 180px;" placeholder="ระบุชื่อแพทย์..."></div>
+        <div>แพทย์คนที่ 2 <input type="text" class="inline-input" style="width: 180px;" placeholder="ระบุชื่อแพทย์ (ถ้ามี)..."></div>
       </div>
 
       <table class="main-table">
         <thead>
           <tr>
-            <th width="12%">ยอดหน้าร้าน</th>
+            <th width="10%">ยอดหน้าร้าน</th>
             <th width="18%">Program</th>
-            <th width="14%">จำนวนเงิน</th>
-            <th width="14%" class="text-red">ยอดหักบัตร<br>(VIP+VOCHUER)</th>
-            <th width="20%">เครดิต</th>
             <th width="12%">จำนวนเงิน</th>
-            <th width="10%">เงินสด/โอน</th>
+            <th width="12%" class="text-red">ยอดหักบัตร<br>(VIP+VOCHUER)</th>
+            <th width="18%">เครดิต</th>
+            <th width="12%">จำนวนเงิน</th>
+            <th width="18%">เงินสด / โอน / แอป</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td rowspan="13" class="bg-gray"></td>
+            <td rowspan="15" class="bg-gray"></td>
             <td>Co2</td>
             <td><input type="number" class="cell-input calc-proc" placeholder="0"></td>
             <td><input type="number" class="cell-input text-red" style="color:red!important;" placeholder="0"></td>
             <td>1. KBANK (กสิกร)</td>
             <td class="bg-gray"></td>
-            <td rowspan="3" style="vertical-align: top; padding-top: 10px;">
-              <div class="text-center text-bold" style="font-size: 13px;">เงินสด</div>
-              <input type="number" id="pay-cash" class="cell-input calc-grand text-center" style="font-size: 18px; margin-top: 20px; font-weight: 800;" placeholder="0">
+            <td rowspan="3" style="vertical-align: top; padding-top: 5px;">
+              <div class="text-center text-bold" style="font-size: 13px; border-bottom:1px solid #000; padding-bottom:3px; margin-bottom:5px;">เงินสด</div>
+              <input type="number" id="pay-cash" class="cell-input calc-grand text-center" style="font-size: 18px; margin-top: 5px; font-weight: 800;" placeholder="0">
             </td>
           </tr>
           <tr>
@@ -236,9 +192,23 @@
             <td><input type="number" class="cell-input text-red" style="color:red!important;" placeholder="0"></td>
             <td>2. KTC (กรุงไทย)</td>
             <td><input type="number" class="cell-input calc-cc" placeholder="0"></td>
-            <td rowspan="4" style="vertical-align: top; padding-top: 10px;">
-              <div class="text-center text-bold" style="font-size: 13px;">แอปพลิเคชัน</div>
-              <input type="number" id="pay-app" class="cell-input calc-grand text-center" style="font-size: 18px; margin-top: 35px; font-weight: 800;" placeholder="0">
+            <td rowspan="5" style="vertical-align: top; padding: 5px;">
+              <div class="text-center text-bold" style="font-size: 13px; border-bottom:1px solid #000; padding-bottom:3px; margin-bottom:5px;">แอปพลิเคชัน</div>
+              <div class="app-zone">
+                <div class="text-bold text-blue">1. HDmall</div>
+                <div class="app-row"><span>1.1 คน</span> <input type="number" class="app-input" placeholder="0"></div>
+                <div class="app-row"><span>1.2 รวม</span> <input type="number" id="app-hd-amt" class="app-input app-amt calc-app" placeholder="0"></div>
+                
+                <div class="text-bold text-blue" style="margin-top: 4px;">2. Gowabi</div>
+                <div class="app-row"><span>2.1 คน</span> <input type="number" class="app-input" placeholder="0"></div>
+                <div class="app-row"><span>2.2 รวม</span> <input type="number" id="app-gw-amt" class="app-input app-amt calc-app" placeholder="0"></div>
+                
+                <div style="margin-top: 4px; border-top: 1px dashed #000; padding-top: 4px; display: flex; justify-content: space-between; font-weight: bold;">
+                  <span>ยอดรวมแอป</span> 
+                  <input type="text" id="pay-app-disp" class="inline-input text-right text-bold" style="width: 70px; border:none; color:#000!important;" readonly value="0.00">
+                </div>
+              </div>
+              <input type="hidden" id="pay-app-hidden" class="calc-grand" value="0">
             </td>
           </tr>
           <tr>
@@ -259,7 +229,7 @@
             <td>Meso</td>
             <td><input type="number" class="cell-input calc-proc" placeholder="0"></td>
             <td><input type="number" class="cell-input text-red" style="color:red!important;" placeholder="0"></td>
-            <td>อื่นๆ ระบุ <input type="text" class="inline-input" style="width: 80px;"></td>
+            <td>อื่นๆ ระบุ <input type="text" class="inline-input" style="width: 60px;"></td>
             <td><input type="number" class="cell-input calc-cc" placeholder="0"></td>
           </tr>
           <tr>
@@ -267,10 +237,6 @@
             <td><input type="number" class="cell-input calc-proc" placeholder="0"></td>
             <td><input type="number" class="cell-input text-red" style="color:red!important;" placeholder="0"></td>
             <td colspan="2" class="bg-gray"></td>
-            <td rowspan="4" style="vertical-align: top; padding-top: 10px;">
-              <div class="text-center text-bold" style="font-size: 13px;">ยอดเงินโอน</div>
-              <input type="number" id="pay-transfer" class="cell-input calc-grand text-center" style="font-size: 18px; margin-top: 35px; font-weight: 800;" placeholder="0">
-            </td>
           </tr>
           <tr>
             <td>Ulthera</td>
@@ -278,15 +244,24 @@
             <td><input type="number" class="cell-input text-red" style="color:red!important;" placeholder="0"></td>
             <td class="text-right text-bold">ยอดรวมเครดิต</td>
             <td class="bg-gray"><input type="text" id="total-cc-disp" class="cell-input text-bold" style="color:#000!important;" readonly value="0.00"></td>
+            <td rowspan="4" style="vertical-align: top; padding-top: 10px;">
+              <div class="text-center text-bold" style="font-size: 13px; border-bottom:1px solid #000; padding-bottom:3px; margin-bottom:5px;">ยอดเงินโอน</div>
+              <input type="number" id="pay-transfer" class="cell-input calc-grand text-center" style="font-size: 18px; margin-top: 5px; font-weight: 800;" placeholder="0">
+            </td>
           </tr>
           <tr>
             <td>Treatment</td>
             <td><input type="number" class="cell-input calc-proc" placeholder="0"></td>
             <td><input type="number" class="cell-input text-red" style="color:red!important;" placeholder="0"></td>
-            <td rowspan="3" colspan="2" style="vertical-align: middle; padding: 10px;">
-              <div class="text-bold" style="font-size: 14px; margin-bottom: 5px;">ยอดชำระรวม</div>
-              <input type="text" id="grand-total-disp" class="cell-input text-bold" style="font-size: 26px; color: #000!important; background: transparent;" value="0">
+            <td rowspan="4" colspan="2" style="vertical-align: middle; padding: 10px;">
+              <div class="text-bold text-center" style="font-size: 16px; margin-bottom: 5px;">ยอดชำระรวม</div>
+              <input type="text" id="grand-total-disp" class="cell-input text-bold text-center" style="font-size: 26px; color: #000!important; background: transparent;" value="0">
             </td>
+          </tr>
+          <tr>
+            <td>Drip Vitamin (Nures)</td>
+            <td><input type="number" class="cell-input calc-proc" placeholder="0"></td>
+            <td><input type="number" class="cell-input text-red" style="color:red!important;" placeholder="0"></td>
           </tr>
           <tr>
             <td>ขายยา / สินค้า</td>
@@ -294,18 +269,25 @@
             <td><input type="number" class="cell-input text-red" style="color:red!important;" placeholder="0"></td>
           </tr>
           <tr>
-            <td>หัตถการอื่นๆ</td>
+            <td>ชาร์จ 3%</td>
             <td><input type="number" class="cell-input calc-proc" placeholder="0"></td>
             <td><input type="number" class="cell-input text-red" style="color:red!important;" placeholder="0"></td>
             <td class="bg-gray"></td>
           </tr>
           <tr>
-            <td class="text-right text-bold">ยอดรวมสุทธิ</td>
-            <td class="bg-gray"><input type="text" id="total-proc-disp" class="cell-input text-bold" style="color:#000!important;" readonly value="0.00"></td>
+            <td><input type="text" class="inline-input" placeholder="ระบุหัตถการอื่นๆ..." style="width:100%; border:none;"></td>
+            <td><input type="number" class="cell-input calc-proc" placeholder="0"></td>
+            <td><input type="number" class="cell-input text-red" style="color:red!important;" placeholder="0"></td>
+            <td colspan="3" class="bg-gray"></td>
+          </tr>
+          
+          <tr>
+            <td class="text-right text-bold" style="font-size: 14px;">ยอดรวมสุทธิ</td>
+            <td class="bg-gray"><input type="text" id="total-proc-disp" class="cell-input text-bold" style="color:#000!important; font-size:15px;" readonly value="0.00"></td>
             <td class="bg-gray"></td>
             <td colspan="3" class="bg-gray text-center text-bold" style="display: flex; justify-content: space-between; align-items: center; border:none; height: 100%;">
               <span>คะแนน (Point)</span>
-              <input type="number" class="cell-input" style="width: 120px; background: #fff; border: 1px solid #ccc; text-align: center; color: #000!important; font-size: 16px;">
+              <input type="number" class="cell-input" style="width: 120px; background: #fff; border: 1px solid #ccc; text-align: center; color: #000!important; font-size: 16px;" placeholder="0">
             </td>
           </tr>
         </tbody>
@@ -314,32 +296,41 @@
       <table class="footer-table">
         <tr>
           <td colspan="2" width="45%">
-            <div style="margin-bottom: 15px;">
-              เลขที่บิลเริ่ม <input type="text" class="inline-input text-bold" style="width: 100px;"> 
-              ถึง <input type="text" class="inline-input text-bold" style="width: 100px;">
+            <div style="margin-bottom: 10px;">
+              เลขที่บิลเริ่ม <input type="text" id="bill-start" class="inline-input text-bold" style="width: 90px;" onblur="checkDuplicate()"> 
+              ถึง <input type="text" class="inline-input text-bold" style="width: 90px;">
             </div>
+            <div id="bill-warning" class="text-red" style="font-size:12px; display:none;">⚠️ พบเลขบิลซ้ำในระบบ</div>
           </td>
           <td width="20%">
-            รวมบิลที่ใช้ <input type="number" class="inline-input text-center text-bold" style="width: 50px;"> บิล
+            รวมบิลที่ใช้ <input type="number" class="inline-input text-center text-bold" style="width: 40px;"> บิล
           </td>
           <td width="35%">
-            แคชเชียร์<br>
-            <input type="text" class="inline-input" style="width: 80%; margin-top: 10px;">
+            แคชเชียร์ 
+            <select class="inline-input" style="width: 70%; margin-left: 5px;">
+              <option>-- เลือกลายเซ็น --</option>
+              <option>สมศรี รักงาน</option>
+              <option>มาลี ดีใจ</option>
+            </select>
           </td>
         </tr>
         <tr>
-          <td width="22.5%">ยอดเงินขาด<br><input type="number" class="cell-input" style="margin-top: 15px; text-align: left;"></td>
-          <td width="22.5%">ยอดเงินเกิน<br><input type="number" class="cell-input" style="margin-top: 15px; text-align: left;"></td>
-          <td width="20%">สาเหตุ<br><input type="text" class="inline-input input-reason" style="margin-top: 15px;"></td>
+          <td width="22.5%">ยอดเงินขาด<br><input type="number" class="cell-input" style="margin-top: 10px; text-align: left;"></td>
+          <td width="22.5%">ยอดเงินเกิน<br><input type="number" class="cell-input" style="margin-top: 10px; text-align: left;"></td>
+          <td width="20%">สาเหตุ<br><input type="text" class="inline-input input-reason text-bold" style="margin-top: 10px;"></td>
           <td>
-            ผู้จัดการ<br>
-            <input type="text" class="inline-input" style="width: 80%; margin-top: 10px;">
+            ผู้จัดการ 
+            <select class="inline-input" style="width: 70%; margin-left: 5px;">
+              <option>-- เลือกลายเซ็น --</option>
+              <option>คุณสมชาย</option>
+              <option>คุณวิภา</option>
+            </select>
           </td>
         </tr>
         <tr>
-          <td colspan="4" style="height: 100px;">
+          <td colspan="4" style="height: 70px;">
             หมายเหตุ:<br>
-            <textarea class="inline-input input-reason" rows="3" placeholder="พิมพ์หมายเหตุเพิ่มเติมตรงนี้..."></textarea>
+            <textarea class="inline-input input-reason text-bold" rows="2" placeholder="พิมพ์หมายเหตุเพิ่มเติมตรงนี้..."></textarea>
           </td>
         </tr>
       </table>
@@ -349,49 +340,52 @@
 </div>
 
 <script>
-  // =========================================
-  // ระบบคำนวณตัวเลข
-  // =========================================
   function formatMoney(num) {
     return num === 0 ? "0.00" : num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function calculateTotals() {
-    // 1. รวมยอดหัตถการ (Program)
+    // 1. รวมหัตถการ
     let totalProc = 0;
-    document.querySelectorAll('.calc-proc').forEach(input => {
-      totalProc += Number(input.value) || 0;
-    });
+    document.querySelectorAll('.calc-proc').forEach(input => { totalProc += Number(input.value) || 0; });
     document.getElementById('total-proc-disp').value = formatMoney(totalProc);
 
-    // 2. รวมยอดเครดิต
+    // 2. รวมเครดิต
     let totalCC = 0;
-    document.querySelectorAll('.calc-cc').forEach(input => {
-      totalCC += Number(input.value) || 0;
-    });
+    document.querySelectorAll('.calc-cc').forEach(input => { totalCC += Number(input.value) || 0; });
     document.getElementById('total-cc-disp').value = formatMoney(totalCC);
 
-    // 3. รวมยอดชำระรวมทั้งหมด (เครดิต + เงินสด + แอป + โอน)
+    // 3. รวมแอป (HDmall + Gowabi)
+    let totalApp = 0;
+    document.querySelectorAll('.calc-app').forEach(input => { totalApp += Number(input.value) || 0; });
+    document.getElementById('pay-app-disp').value = formatMoney(totalApp);
+    document.getElementById('pay-app-hidden').value = totalApp; // ซ่อนไว้บวกแกรนด์โททอล
+
+    // 4. Grand Total
     let grandTotal = totalCC;
-    document.querySelectorAll('.calc-grand').forEach(input => {
-      grandTotal += Number(input.value) || 0;
-    });
+    document.querySelectorAll('.calc-grand').forEach(input => { grandTotal += Number(input.value) || 0; });
     
-    // ช่องยอดชำระรวม พิมพ์แก้ทับได้ (ถ้าไม่ได้พิมพ์อยู่ให้ระบบอัปเดต)
     const grandInput = document.getElementById('grand-total-disp');
     if (document.activeElement !== grandInput) {
       grandInput.value = grandTotal > 0 ? formatMoney(grandTotal) : "";
     }
   }
 
-  // ผูก Event ให้ทำงานตอนพิมพ์ทันที
   document.querySelectorAll('input[type="number"]').forEach(input => {
     input.addEventListener('input', calculateTotals);
   });
 
-  // =========================================
-  // ระบบ Export เป็นภาพ PNG
-  // =========================================
+  // Mockup จำลองการเช็คเลขบิล
+  function checkDuplicate() {
+    const val = document.getElementById('bill-start').value;
+    const warning = document.getElementById('bill-warning');
+    if(val.includes('001')) { // สมมติถ้าเลขบิลมีคำว่า 001 ให้เตือนซ้ำ
+      warning.style.display = 'block';
+    } else {
+      warning.style.display = 'none';
+    }
+  }
+
   window.exportPNG = function() {
     const area = document.getElementById('captureArea');
     html2canvas(area, { scale: 2 }).then(canvas => {
@@ -402,7 +396,6 @@
     });
   }
 
-  // ตั้งค่าวันที่ปัจจุบันอัตโนมัติ
   document.querySelector('input[type="date"]').valueAsDate = new Date();
 </script>
 
