@@ -1215,11 +1215,17 @@ th.today-col {
 }
 .roster-slot-name {
   font-size: 12.5px; font-weight: 700; color: var(--text);
-  white-space: nowrap;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%;
 }
 .roster-slot-time {
   font-size: 11px; color: var(--muted);
   font-family: var(--font-mono); white-space: nowrap;
+  display: block; margin-top: 1px;
+}
+/* แยกชื่อหมอและเวลาเป็นคนละบรรทัด */
+.roster-slot > div {
+  display: flex; flex-direction: column; min-width: 0;
 }
 .roster-slots-wrap {
   display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
@@ -1996,6 +2002,14 @@ th.today-col {
       <div class="nav-item" id="nav-docs" onclick="switchTab('docs',event)">
         <span class="nav-icon">📄</span> เอกสาร
       </div>
+      <!-- Operations Portal -->
+      <div id="nav-ops-divider" style="display:none;margin:8px 6px 4px;border-top:1px solid rgba(255,255,255,0.08);"></div>
+      <div class="nav-item" id="nav-ops-header" style="display:none;pointer-events:none;opacity:0.5;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:4px 10px;">
+        🏢 Operations Portal
+      </div>
+      <div class="nav-item" id="nav-ops-revenue" onclick="openOperationsPortal()" style="display:none">
+        <span class="nav-icon">💰</span> Revenue Sheet
+      </div>
     </nav>
 
     <div class="sidebar-footer">
@@ -2363,6 +2377,7 @@ th.today-col {
             <button onclick="rosterChangePeriod(0)" id="rosterBtnToday" style="padding:4px 10px;border-radius:14px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-size:11px;display:none;">ปัจจุบัน</button>
             <button onclick="rosterChangePeriod(1)" style="width:28px;height:28px;border-radius:50%;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-size:14px;">▶</button>
             <button onclick="openExportRosterModal()" style="padding:5px 12px;border-radius:14px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-size:11px;">📤 Export</button>
+            <button onclick="_reloadRosterNow(this)" style="padding:5px 12px;border-radius:14px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-size:11px;">🔄 อัปเดต</button>
           </div>
         </div>
         <!-- View + Filter -->
@@ -3871,7 +3886,19 @@ let BRANCHES=[
 // STATE
 // ══════════════════════════════════════════
 const ADMIN_PASSWORD = '16698';
-let session = { branchId: null, isManager: false, isAdmin: false };
+let session = { branchId: null, isManager: false, isAdmin: false, isCashier: false };
+
+// ══ Cashier codes per branch ══
+const CASHIER_CODES = {
+  'b1': '47291',
+  'b2': '83640',
+  'b3': '29817',
+  'b4': '56034',
+  'b5': '71483',
+  'b6': '38926',
+  'b7': '64752',
+  'b8': '92165'
+};
 
 // Default branches สำหรับแสดงหน้า login ก่อน Firebase โหลด
 const DEFAULT_BRANCHES = [
@@ -3985,7 +4012,26 @@ function doLogin(){
 }
 
 function _doLoginSuccess({ branchId, isManager, isAdmin, userId, pages, branches, userName }){
-  session = { branchId, isManager, isAdmin, userId: userId||null, pages: pages||null, branches: branches||null, userName: userName||null };
+  // ตรวจ cashier code
+  var isCashier = false;
+  var cashierBranch = null;
+  if(!isAdmin && !isManager){
+    Object.entries(CASHIER_CODES).forEach(function(entry){
+      if(entry[1] === pw){
+        isCashier = true;
+        cashierBranch = entry[0];
+      }
+    });
+  }
+
+  if(isCashier){
+    session = { branchId: cashierBranch, isManager: false, isAdmin: false, isCashier: true, userName: 'Cashier' };
+    document.getElementById('loginModal').style.display = 'none';
+    _showOpsOnlyUI();
+    return;
+  }
+
+  session = { branchId, isManager, isAdmin, isCashier: false, userId: userId||null, pages: pages||null, branches: branches||null, userName: userName||null };
   localStorage.setItem('laliza_session', JSON.stringify({ ...session, loginAt: Date.now() }));
   document.getElementById('loginError').style.display = 'none';
   showLoadingOverlay(true);
@@ -4010,6 +4056,47 @@ function showLoginError(msg){
   document.getElementById('loginPassword').value = '';
   document.getElementById('loginPassword').focus();
 }
+
+function _showOpsOnlyUI(){
+  // cashier เห็นแค่ Operations Portal
+  document.querySelector('.sidebar').style.display = '';
+  document.getElementById('mainContent').style.display = '';
+
+  // ซ่อน nav ทั้งหมด
+  document.querySelectorAll('.nav-item').forEach(function(el){
+    el.style.display = 'none';
+  });
+
+  // แสดง Operations Portal เท่านั้น
+  var divider = document.getElementById('nav-ops-divider');
+  var header = document.getElementById('nav-ops-header');
+  var revenue = document.getElementById('nav-ops-revenue');
+  if(divider) divider.style.display = '';
+  if(header) header.style.display = '';
+  if(revenue) revenue.style.display = '';
+
+  // อัปเดต badge
+  document.getElementById('userBadgeName').textContent = 'Cashier - ' + (BRANCHES.find(function(b){return b.id===session.branchId;})||{name:session.branchId}).name;
+  document.getElementById('userBadgeRole').textContent = '💰 Cashier';
+
+  // แสดง main content ว่างๆ
+  document.getElementById('mainContent').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:16px;color:#94a3b8;"><div style="font-size:48px;">🏢</div><div style="font-size:16px;font-weight:600;">กรุณาเลือก Revenue Sheet จากเมนูซ้าย</div></div>';
+}
+
+function openOperationsPortal(){
+  window.open('https://nantawat-bobbi.github.io/OPERATIONS-PORTAL/', '_blank');
+}
+
+function _showOpsNavForStaff(){
+  // admin/manager เห็น Operations Portal เพิ่มด้วย
+  var divider = document.getElementById('nav-ops-divider');
+  var header = document.getElementById('nav-ops-header');
+  var revenue = document.getElementById('nav-ops-revenue');
+  if(divider) divider.style.display = '';
+  if(header) header.style.display = '';
+  if(revenue) revenue.style.display = '';
+}
+
 
 function doLogout(){
   session = { branchId:null, isManager:false };
@@ -4088,6 +4175,7 @@ function startApp(){
   document.getElementById('sidebarBranchText').textContent = b.name;
   document.getElementById('userBadgeName').textContent = b.name.length>18 ? b.name.substring(0,16)+'…' : b.name;
   document.getElementById('userBadgeRole').textContent = session.isAdmin ? '⭐ Admin' : session.isManager ? '👑 Manager' : '👁️ ผู้ดู';
+  if(session.isAdmin || session.isManager) _showOpsNavForStaff();
   // อัปเดต period label
   const _topSub = document.getElementById('topSub');
   if(_topSub) _topSub.textContent = getPeriodLabel(_periodOffset);
@@ -6398,6 +6486,12 @@ function startRealtimeSync(){
   // ปิด realtime sync เพื่อป้องกันข้อมูลถูก overwrite
   // ใช้ .once() แทน .on() ในทุกที่
   console.log('App ready');
+// โหลด html2canvas ล่วงหน้า
+if(typeof html2canvas === 'undefined'){
+  var _hc = document.createElement('script');
+  _hc.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+  document.head.appendChild(_hc);
+}
 }
 
 // แสดง indicator ว่าบันทึกแล้ว
@@ -7339,8 +7433,8 @@ function _renderWeeklyView(days, canEdit, MON_S){
         const slot0 = _rosterData[branch.id+'_'+di+'_0'];
         const slot1 = _rosterData[branch.id+'_'+di+'_1'];
         [slot0, slot1].filter(Boolean).forEach(slot=>{
-          const sub = _docSubs.find(s=>s.branchId===branch.id && s.dayIndex===di && s.originalDocId===slot.docId);
-          const displaySlot = sub ? {...slot, docId:sub.subDocId, docName:sub.subDocName, isSub:true} : slot;
+          const sub = _docSubs.find(s=>s.branchId===branch.id && s.dayIndex===di && (s.slot||0)===(slot.slot||0));
+          const displaySlot = sub ? {...slot, docId:sub.subDocId, docName:sub.subDocName||sub.docName, isSub:true} : slot;
           const doc = DOCTORS[displaySlot.docId||slot.docId]||{};
           const c = doc.color||getDoctorColor(displaySlot.docId||slot.docId);
           const name = displaySlot.docName || doc.name || '—';
@@ -7537,8 +7631,17 @@ function renderRoster(){
         // เช็ค substitutes — ถ้ามีการแทน ให้ใช้หมอที่แทนแทน
         const _resolveSlot = (slot)=>{
           if(!slot) return null;
-          const sub = _docSubs.find(s=>s.branchId===branch.id && s.dayIndex===di && s.originalDocId===slot.docId);
-          if(sub) return { docId:sub.subDocId, doc:DOCTORS[sub.subDocId]||{}, rData:{...slot, time:sub.time||slot.time}, isSub:true, originalDoc:DOCTORS[slot.docId]||{} };
+          const sub = _docSubs.find(function(s){
+            return s.branchId===branch.id && s.dayIndex===di &&
+              (s.slot||0)===(slot.slot||0);
+          });
+          if(sub) return {
+            docId: sub.subDocId,
+            doc: DOCTORS[sub.subDocId]||{name:sub.subDocName||'—'},
+            rData: {...slot, time:sub.time||slot.time},
+            isSub: true,
+            originalDoc: DOCTORS[slot.docId]||{name:sub.origDocName||slot.docName||'—'}
+          };
           return { docId:slot.docId, doc:DOCTORS[slot.docId]||{}, rData:slot, isSub:false };
         };
         const slots = [_resolveSlot(slot0),_resolveSlot(slot1)].filter(Boolean);
@@ -7667,8 +7770,17 @@ function openRosterDetail(branchId, dayIndex, slot){
   const existing = _rosterData[key];
   const day = _rosterDays[dayIndex];
   const branch = BRANCHES.find(b=>b.id===branchId)||{name:'—'};
-  const docOpts = Object.entries(DOCTORS).map(([id,d])=>`<option value="${id}" ${existing?.docId===id?'selected':''}>${d.name||id}</option>`).join('');
-  const origDocOpts = Object.entries(DOCTORS).map(([id,d])=>`<option value="${id}" ${existing?.originalDocId===id?'selected':''}>${d.name||id}</option>`).join('');
+
+  // อ่านจาก _rosterData[key] โดยตรง — source of truth
+  const isSubSlot    = existing?.isSub === true || existing?.type === 'sub';
+  const displayDocId  = existing?.docId  || '';
+  const displayTime   = existing?.time   || '';
+  const displayType   = isSubSlot ? 'sub' : (existing?.type || 'normal');
+  const displayOrigId = existing?.originalDocId || '';
+  const activeSub     = null; // ไม่ใช้ _docSubs ใน modal — ใช้ _rosterData แทน
+
+  const docOpts = Object.entries(DOCTORS).map(([id,d])=>`<option value="${id}" ${displayDocId===id?'selected':''}>${d.name||id}</option>`).join('');
+  const origDocOpts = Object.entries(DOCTORS).map(([id,d])=>`<option value="${id}" ${displayOrigId===id?'selected':''}>${d.name||id}</option>`).join('');
 
   const DAY_FULL2=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
   const modal = document.createElement('div');
@@ -7691,17 +7803,17 @@ function openRosterDetail(branchId, dayIndex, slot){
       </div>
       <div>
         <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">เวลา</label>
-        <input type="text" id="rd_time" value="${existing?.time||''}" placeholder="09:00-17:00" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;font-family:'Sarabun',sans-serif;font-size:13px;box-sizing:border-box;margin-top:4px;">
+        <input type="text" id="rd_time" value="${displayTime}" placeholder="09:00-17:00" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;font-family:'Sarabun',sans-serif;font-size:13px;box-sizing:border-box;margin-top:4px;">
       </div>
       <div>
         <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">ประเภท</label>
         <select id="rd_type" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;font-family:'Sarabun',sans-serif;font-size:13px;margin-top:4px;">
-          <option value="normal" ${(existing?.type||'normal')==='normal'?'selected':''}>ปกติ</option>
-          <option value="sub" ${existing?.type==='sub'?'selected':''}>แทน</option>
-          <option value="help" ${existing?.type==='help'?'selected':''}>ช่วย</option>
+          <option value="normal" ${displayType==='normal'?'selected':''}>ปกติ</option>
+          <option value="sub" ${displayType==='sub'?'selected':''}>แทน</option>
+          <option value="help" ${displayType==='help'?'selected':''}>ช่วย</option>
         </select>
       </div>
-      <div id="rd_original_wrap" style="${existing?.type==='sub'?'':'display:none'}">
+      <div id="rd_original_wrap" style="${displayType==='sub'?'':'display:none'}">
         <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">แพทย์เดิม (ที่ถูกแทน)</label>
         <select id="rd_original" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;font-family:'Sarabun',sans-serif;font-size:13px;margin-top:4px;">
           <option value="">— เลือกแพทย์เดิม —</option>
@@ -7710,7 +7822,7 @@ function openRosterDetail(branchId, dayIndex, slot){
       </div>
       <div>
         <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">หมายเหตุ</label>
-        <input type="text" id="rd_note" value="${existing?.note||''}" placeholder="หมายเหตุ" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;font-family:'Sarabun',sans-serif;font-size:13px;box-sizing:border-box;margin-top:4px;">
+        <input type="text" id="rd_note" value="${activeSub?.reason||existing?.note||''}" placeholder="หมายเหตุ" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;font-family:'Sarabun',sans-serif;font-size:13px;box-sizing:border-box;margin-top:4px;">
       </div>
     </div>
     <div style="padding:12px 16px;border-top:1px solid #f1f5f9;display:flex;gap:8px;flex-shrink:0;">
@@ -7738,14 +7850,14 @@ function _saveRosterEntry(branchId, dayIndex, slot, btn){
   const periodKey = _rosterActivePeriod?.key || _activePeriod?.key;
   const key = `${branchId}_${dayIndex}_${slot}`;
   const docRef = `${periodKey}_${branchId}_${dayIndex}_${slot}`;
-  const data = { docId, branchId, dayIndex, slot, time, note, type, originalDocId, periodKey, updatedAt: Date.now() };
+  const docName = (DOCTORS[docId]||{}).name||docId;
+  const data = { docId, docName, branchId, dayIndex, slot, time, note, type, originalDocId, periodKey, isSub: type==='sub', updatedAt: Date.now() };
   fdb.collection('doctorRoster').doc(docRef).set(data).then(()=>{
-    _rosterData[key] = { ...data, _docId: docRef };
+    _rosterData[key] = Object.assign({}, data, {id: docRef});
     btn.closest('div[style*=fixed]').remove();
     renderRoster();
+    renderDocDefault();
     showSaveIndicator('Saved');
-    // Auto sync หลัง save
-    if(typeof syncRosterToSheets === 'function') syncRosterToSheets(branchId);
   }).catch(()=>{ btn.disabled=false; btn.textContent='Save'; });
 }
 
@@ -7793,10 +7905,16 @@ function renderDocDefault(){
     }).join('');
   }
 
-  // ถ้ายังไม่มี rosterData → loading
+  // ถ้ายังไม่มี rosterData → load once เท่านั้น
   if(!_rosterActivePeriod){
     el.innerHTML = _skeletonHtml();
-    loadRoster(function(){ renderDocDefault(); });
+    if(!window._loadingRoster){
+      window._loadingRoster = true;
+      loadRoster(function(){
+        window._loadingRoster = false;
+        renderDocDefault();
+      });
+    }
     return;
   }
 
@@ -7903,7 +8021,16 @@ function _renderOverrideCalendar(bid, days){
 
   var html = '<div style="display:flex;flex-direction:column;gap:1px;">';
   days.forEach(function(day,di){
-    var subs = _docSubs.filter(function(s){return s.branchId===bid&&s.dayIndex===di;});
+    // หา dayIndex จริงจาก _rosterDays (ไม่ใช่ loop index)
+    var realDayIndex = day.di !== undefined ? day.di : di;
+    // ถ้า days คือ _rosterDays ตรงๆ ให้ใช้ di ได้เลย
+    // แต่ถ้าไม่มี day.di ให้ match จาก date+month
+    if(realDayIndex === di && _rosterDays[di] && (_rosterDays[di].date !== day.date)){
+      // days ไม่ใช่ _rosterDays — หา index จริง
+      var found = _rosterDays.findIndex(function(d){return d.date===day.date && d.month===day.month;});
+      if(found >= 0) realDayIndex = found;
+    }
+    var subs = _docSubs.filter(function(s){return s.branchId===bid&&s.dayIndex===realDayIndex;});
     var bg = day.isToday?'#fefce8':day.we?'#f9fafb':'#fff';
     html += '<div style="padding:7px 10px;background:'+bg+';border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:8px;">';
     html += '<div style="width:36px;flex-shrink:0;text-align:center;">';
@@ -7913,7 +8040,13 @@ function _renderOverrideCalendar(bid, days){
     html += '<div style="flex:1;">';
     if(subs.length){
       subs.forEach(function(s){
-        html += '<div style="font-size:11px;background:#fef3c7;border-radius:6px;padding:3px 8px;margin-bottom:2px;color:#92400e;font-weight:600;">🔄 '+(s.subDocName||'—')+' แทน '+(s.origDocName||'—')+'</div>';
+        html += '<div style="font-size:11px;background:#fef3c7;border-radius:6px;padding:3px 6px;margin-bottom:2px;color:#92400e;font-weight:600;display:flex;align-items:center;gap:6px;">';
+        html += '<span style="flex:1;">🔄 '+(s.subDocName||'—')+' แทน '+(s.origDocName||'—')+'</span>';
+        if(canEdit){
+          var sid = s.id||'';
+          html += '<button data-sid="'+sid+'" data-bid="'+bid+'" data-di="'+di+'" data-slot="'+(s.slot||0)+'" onclick="deleteSubstitute(this)" style="width:18px;height:18px;border-radius:50%;border:none;background:#fee2e2;color:#dc2626;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;" title="ลบการแทนเวร">✕</button>';
+        }
+        html += '</div>';
       });
     } else {
       html += '<span style="font-size:11px;color:#e2e8f0;">—</span>';
@@ -7933,6 +8066,46 @@ function _skeletonHtml(){
   for(var i=0;i<6;i++) rows += '<div class="skeleton skeleton-line" style="height:52px;margin-bottom:4px;border-radius:8px;"></div>';
   return '<div style="padding:12px;">'+rows+'</div>';
 }
+
+function deleteSubstitute(btn){
+  var sid  = btn.dataset.sid;
+  var bid  = btn.dataset.bid;
+  var di   = parseInt(btn.dataset.di);
+  var slot = parseInt(btn.dataset.slot||0);
+
+  if(!confirm('ลบการแทนเวรนี้?')) return;
+
+  var doDelete = function(){
+    // ลบจาก _docSubs memory
+    _docSubs = _docSubs.filter(function(s){
+      return !(s.branchId===bid && s.dayIndex===di && (s.slot||0)===slot);
+    });
+    // ลบ isSub จาก _rosterData memory ถ้ามี
+    var rKey = bid+'_'+di+'_'+slot;
+    if(_rosterData[rKey] && _rosterData[rKey].isSub){
+      _rosterData[rKey].isSub = false;
+      _rosterData[rKey].type  = 'normal';
+      if(_rosterData[rKey].originalDocId){
+        _rosterData[rKey].docId   = _rosterData[rKey].originalDocId;
+        _rosterData[rKey].docName = _rosterData[rKey].originalDocName || '';
+      }
+    }
+    renderDocDefault();
+    renderRoster();
+    showSaveIndicator('ลบการแทนเวรแล้ว ✓');
+  };
+
+  if(sid && fdb){
+    fdb.collection('doctorRoster').doc(sid).delete().then(doDelete).catch(function(e){
+      // ถ้า doc ID ไม่ตรง ลบ memory อย่างเดียว
+      console.warn('Delete sub failed:', e.message);
+      doDelete();
+    });
+  } else {
+    doDelete();
+  }
+}
+
 
 function deleteRosterSlot(bid, di, slotN){
   if(!confirm('ลบตารางเวรนี้?')) return;
@@ -7970,8 +8143,8 @@ function openSubstituteModal(bid, di){
   var slot0 = _rosterData[bid+'_'+di+'_0'];
   var slot1 = _rosterData[bid+'_'+di+'_1'];
   var origOpts = '';
-  if(slot0) origOpts += '<option value="'+slot0.docId+'_0">'+(slot0.docName||slot0.docId)+' (เวร 1: '+(slot0.time||'')+')</option>';
-  if(slot1) origOpts += '<option value="'+slot1.docId+'_1">'+(slot1.docName||slot1.docId)+' (เวร 2: '+(slot1.time||'')+')</option>';
+  if(slot0) origOpts += '<option value="'+slot0.docId+'||0">'+(slot0.docName||slot0.docId)+' (เวร 1: '+(slot0.time||'')+')</option>';
+  if(slot1) origOpts += '<option value="'+slot1.docId+'||1">'+(slot1.docName||slot1.docId)+' (เวร 2: '+(slot1.time||'')+')</option>';
   if(!origOpts) origOpts = '<option value="">ไม่มีเวรเดิม</option>';
 
   mo.style.display = 'flex';
@@ -8007,7 +8180,8 @@ function saveSubstitute(bid, di){
   var reason = document.getElementById('sub_reason').value.trim();
 
   if(!origVal||!newDocId){ alert('กรุณาเลือกแพทย์ให้ครบ'); return; }
-  var parts = origVal.split('_');
+  // origVal format: "{docId}||{slotN}" ใช้ || แทน _ เพราะ docId อาจมี _
+  var parts = origVal.split('||');
   var origDocId = parts[0];
   var slotN = parseInt(parts[1])||0;
   var slot = _rosterData[bid+'_'+di+'_'+slotN];
@@ -8033,14 +8207,23 @@ function saveSubstitute(bid, di){
     docName: newDoc.name||newDocId,
   };
 
-  // save ลง Firestore
-  fdb.collection('doctorRoster').add(subData).then(function(ref){
-    subData.id = ref.id;
-    _docSubs.push(subData);
+  // upsert — ใช้ doc ID ที่คาดเดาได้ เพื่อป้องกัน duplicate
+  var subDocRef = 'sub_'+bid+'_'+di+'_'+slotN;
+  fdb.collection('doctorRoster').doc(subDocRef).set(subData).then(function(){
+    subData.id = subDocRef;
+    // อัปเดต _docSubs ใน memory ทันที
+    var existIdx = _docSubs.findIndex(function(s){
+      return s.branchId===bid && s.dayIndex===di && s.slot===slotN;
+    });
+    if(existIdx >= 0){ _docSubs[existIdx] = subData; }
+    else { _docSubs.push(subData); }
     document.getElementById('subModal').style.display = 'none';
-    renderDocDefault();
-    renderRoster();
     writeLog('substitute','บันทึกแทนเวร '+(newDoc.name||newDocId)+' แทน '+(origDoc.name||origDocId)+' วันที่ '+(_rosterDays[di]?_rosterDays[di].date+'/'+_rosterDays[di].month:''));
+    // reload roster + subs ใหม่ทั้งหมด แล้ว render
+    loadRoster(function(){
+      renderDocDefault();
+      renderRoster();
+    });
   }).catch(function(e){ alert('บันทึกไม่สำเร็จ: '+e.message); });
 }
 
@@ -8070,6 +8253,24 @@ function generateRosterFromDefault(){
 }
 
 function _doGenerateRoster(defaultKey, targetKey, period){
+  // Step 0: ลบ records เก่าของ targetKey และ legacy "doc-"+targetKey (non-substitute เท่านั้น)
+  const legacyKey = 'doc-' + targetKey;
+  const deleteOldRecords = function(callback){
+    var toDelete = [];
+    var q1 = fdb.collection('doctorRoster').where('periodKey','==',targetKey).where('isSub','==',false).get();
+    var q2 = fdb.collection('doctorRoster').where('periodKey','==',legacyKey).where('isSub','==',false).get();
+    Promise.all([q1, q2]).then(function(results){
+      results.forEach(function(snap){
+        snap.forEach(function(d){ toDelete.push(d.ref); });
+      });
+      if(!toDelete.length){ callback(); return; }
+      var batch = fdb.batch();
+      toDelete.forEach(function(ref){ batch.delete(ref); });
+      batch.commit().then(callback).catch(callback);
+    }).catch(callback);
+  };
+
+  deleteOldRecords(function(){
   // Step 1: โหลด Default Schedule
   fdb.collection('doctorRoster')
     .where('periodKey','==',defaultKey)
@@ -8079,19 +8280,28 @@ function _doGenerateRoster(defaultKey, targetKey, period){
         return;
       }
 
-      // Step 2: โหลด substitute ของ defaultKey ด้วย (isSub:true)
+      // Step 2: โหลด substitute ของ targetKey (ทั้งหมด แล้วกรอง isSub ใน JS)
       fdb.collection('doctorRoster')
-        .where('periodKey','==',defaultKey)
-        .where('isSub','==',true)
-        .get().then(subSnap=>{
+        .where('periodKey','==',targetKey)
+        .get().then(fullSnap=>{
+          // กรองเฉพาะ substitute records
+          const subDocs = [];
+          fullSnap.forEach(d=>{ if(d.data().isSub) subDocs.push(d); });
+          const subSnap = {forEach: function(fn){ subDocs.forEach(fn); }};
+          {
 
-          // สร้าง substitute map: key = branchId_dayIndex_slot → subData
+          // สร้าง substitute map: deduplicate โดยใช้ createdAt ล่าสุด
           const subMap = {};
           subSnap.forEach(d=>{
             const s = d.data();
-            const k = `${s.branchId}_${s.dayIndex}_${s.slot||0}`;
-            subMap[k] = s;
+            if(!s.branchId || s.dayIndex===undefined) return;
+            const k = s.branchId+'_'+s.dayIndex+'_'+(s.slot||0);
+            // เก็บเฉพาะ createdAt ล่าสุด
+            if(!subMap[k] || (s.createdAt||0) > (subMap[k].createdAt||0)){
+              subMap[k] = s;
+            }
           });
+          console.log('[Generate] subMap keys:', Object.keys(subMap));
 
           const batch = fdb.batch();
           const now = Date.now();
@@ -8102,8 +8312,9 @@ function _doGenerateRoster(defaultKey, targetKey, period){
             if(!data.branchId || data.dayIndex===undefined) return;
             if(data.isSub) return; // ข้าม substitute records จาก default
 
-            const slotKey = `${data.branchId}_${data.dayIndex}_${data.slot||0}`;
-            const sub = subMap[slotKey];
+            const slotKey  = `${data.branchId}_${data.dayIndex}_${data.slot||0}`;
+            const slotKey2 = `${data.branchId}_${data.dayIndex}`;
+            const sub = subMap[slotKey] || subMap[slotKey2] || null;
 
             // Step 3: merge — ถ้ามี substitute ให้ replace แพทย์
             const mergedData = sub ? {
@@ -8131,22 +8342,45 @@ function _doGenerateRoster(defaultKey, targetKey, period){
 
           batch.commit().then(()=>{
             const subCount = Object.keys(subMap).length;
-            alert('✅ Generate สำเร็จ! สร้างตารางเวร '+count+' รายการ'+(subCount?' (รวมแทนเวร '+subCount+' รายการ)':'')+' สำหรับ '+period.labelFull);
-            _rosterData = {};
-            loadRoster(renderRoster);
-            renderDocDefault();
+            // อัปเดต _rosterData ใน memory ทันที (ไม่รอ loadRoster)
+            defaultSnap.forEach(d=>{
+              const data = d.data();
+              if(!data.branchId || data.dayIndex===undefined || data.isSub) return;
+              const slotKey  = data.branchId+'_'+data.dayIndex+'_'+(data.slot||0);
+              const slotKey2 = data.branchId+'_'+data.dayIndex;
+              const sub = subMap[slotKey] || subMap[slotKey2] || null;
+              if(sub){
+                _rosterData[slotKey] = Object.assign({}, data, {
+                  docId:           sub.subDocId || sub.docId,
+                  docName:         sub.subDocName || sub.docName,
+                  isSub:           true,
+                  type:            'sub',
+                  originalDocId:   data.docId,
+                  originalDocName: data.docName || '',
+                  time:            sub.time || data.time || '',
+                  periodKey:       targetKey,
+                });
+              } else {
+                _rosterData[slotKey] = Object.assign({}, data, {isSub: false, periodKey: targetKey});
+              }
+            });
             writeLog('generateRoster','Generate ตารางเวร '+period.labelFull+' จาก '+defaultKey+' ('+count+' รายการ, แทนเวร '+Object.keys(subMap).length+')');
+            // render ทันทีจาก memory ที่ update แล้ว
+            renderRoster();
+            renderDocDefault();
+            alert('✅ Generate สำเร็จ! สร้างตารางเวร '+count+' รายการ'+(subCount?' (รวมแทนเวร '+subCount+' รายการ)':'')+' สำหรับ '+period.labelFull);
           }).catch(e=>{
             alert('Generate ไม่สำเร็จ: '+e.message);
           });
 
-        }).catch(e=>{
+        }}).catch(e=>{
           alert('โหลด Substitute ไม่สำเร็จ: '+e.message);
         });
 
     }).catch(e=>{
       alert('โหลด Default Schedule ไม่สำเร็จ: '+e.message);
     });
+  }); // end deleteOldRecords
 }
 
 // ══════════════════════════════════════════
@@ -8155,10 +8389,21 @@ function _doGenerateRoster(defaultKey, targetKey, period){
 var _docSubsLoaded = false;
 
 function loadDocSubs(callback){
-  if(!fdb || !_activePeriod){ if(callback) callback([]); return; }
-  fdb.collection('doctorRoster').where('periodKey','==',_activePeriod.key).where('isSub','==',true).get().then(function(snap){
-    _docSubs = [];
-    snap.forEach(function(d){ _docSubs.push(Object.assign({id:d.id},d.data())); });
+  // ใช้ _rosterActivePeriod สำหรับแพทย์ ไม่ใช่ _activePeriod ของ HR
+  var rKey = _rosterActivePeriod ? _rosterActivePeriod.key : (_activePeriod ? _activePeriod.key : null);
+  if(!fdb || !rKey){ if(callback) callback([]); return; }
+  fdb.collection('doctorRoster').where('periodKey','==',rKey).get().then(function(snap){
+    // deduplicate: ถ้า branchId+dayIndex+slot ซ้ำ ให้ใช้ createdAt ล่าสุด
+    var subMap = {};
+    snap.forEach(function(d){
+      var data = Object.assign({id:d.id}, d.data());
+      if(!data.isSub) return; // กรอง isSub ใน JS
+      var key = (data.branchId||'')+'_'+(data.dayIndex||0)+'_'+(data.slot||0);
+      if(!subMap[key] || (data.createdAt||0) > (subMap[key].createdAt||0)){
+        subMap[key] = data;
+      }
+    });
+    _docSubs = Object.values(subMap);
     _docSubsLoaded = true;
     if(callback) callback(_docSubs);
   }).catch(function(){ if(callback) callback([]); });
@@ -8215,41 +8460,73 @@ function loadRoster(cb){
   const periodKey = _rosterActivePeriod?.key || _activePeriod?.key;
   if(!periodKey||!fdb){ if(cb) cb(); return; }
 
-  // รองรับทั้งสอง format: "YYYY-MM" และ "doc-YYYY-MM"
   const altKey = periodKey.startsWith('doc-') ? periodKey.slice(4) : 'doc-'+periodKey;
 
-  const processSnap = (snap, existing={}) => {
+  const processSnap = (snaps) => {
     const slotCounter = {};
-    const result = {...existing};
-    snap.forEach(d=>{
-      const data = d.data();
-      const bid = data.branchId;
-      const di  = data.dayIndex;
-      if(!bid || di===undefined || di===null) return;
-      let slotN = data.slot;
-      if(slotN===undefined){
-        const ck = bid+'_'+di;
-        slotCounter[ck] = (slotCounter[ck]||0);
-        slotN = slotCounter[ck];
-        slotCounter[ck]++;
-      }
-      const key = `${bid}_${di}_${slotN}`;
-      result[key] = { ...data, slot: slotN, id: d.id };
+    const result = {};
+    snaps.forEach(snap=>{
+      snap.forEach(d=>{
+        const data = d.data();
+        const bid = data.branchId;
+        const di  = data.dayIndex;
+        if(!bid || di===undefined || di===null) return;
+        if(data.isSub) return; // ข้าม substitute — จัดการโดย _docSubs
+        let slotN = data.slot;
+        if(slotN===undefined){
+          const ck = bid+'_'+di;
+          slotCounter[ck] = (slotCounter[ck]||0);
+          slotN = slotCounter[ck];
+          slotCounter[ck]++;
+        }
+        const key = bid+'_'+di+'_'+slotN;
+        if(!result[key]) result[key] = { ...data, slot: slotN, id: d.id };
+      });
     });
     return result;
   };
 
-  // query periodKey หลัก
-  fdb.collection('doctorRoster').where('periodKey','==',periodKey).get()
-    .then(snap1=>{
-      const data1 = processSnap(snap1);
-      // query altKey ด้วย (รองรับ legacy format)
-      fdb.collection('doctorRoster').where('periodKey','==',altKey).get()
-        .then(snap2=>{
-          _rosterData = processSnap(snap2, data1);
-          if(cb) cb();
-        }).catch(()=>{ _rosterData = data1; if(cb) cb(); });
-    }).catch(e=>{ console.warn('loadRoster error:', e); if(cb) cb(); });
+  // query ทั้งสอง format พร้อมกัน + โหลด subs พร้อมกัน = เร็วขึ้น 2x
+  Promise.all([
+    fdb.collection('doctorRoster').where('periodKey','==',periodKey).get().catch(()=>({forEach:()=>{}})),
+    fdb.collection('doctorRoster').where('periodKey','==',altKey).get().catch(()=>({forEach:()=>{}})),
+  ]).then(function(results){
+    var subMap = {};
+    var rosterSnaps = [];
+    results.forEach(function(snap){
+      snap.forEach(function(d){
+        var data = d.data();
+        if(data.isSub){
+          // แยก substitute
+          var s = Object.assign({id:d.id}, data);
+          var k = (s.branchId||'')+'_'+(s.dayIndex||0)+'_'+(s.slot||0);
+          if(!subMap[k]||(s.createdAt||0)>(subMap[k].createdAt||0)) subMap[k]=s;
+        } else {
+          rosterSnaps.push(d);
+        }
+      });
+    });
+    // process roster
+    var slotCounter = {};
+    _rosterData = {};
+    rosterSnaps.forEach(function(d){
+      var data = d.data();
+      var bid = data.branchId, di = data.dayIndex;
+      if(!bid||di===undefined||di===null) return;
+      var slotN = data.slot;
+      if(slotN===undefined){
+        var ck = bid+'_'+di;
+        slotCounter[ck] = (slotCounter[ck]||0);
+        slotN = slotCounter[ck];
+        slotCounter[ck]++;
+      }
+      var key = bid+'_'+di+'_'+slotN;
+      if(!_rosterData[key]) _rosterData[key] = Object.assign({}, data, {slot:slotN, id:d.id});
+    });
+    _docSubs = Object.values(subMap);
+    _docSubsLoaded = true;
+    if(cb) cb();
+  }).catch(function(e){ console.warn('loadRoster error:', e); if(cb) cb(); });
 }
 
 // คำนวณค่าตอบแทนแพทย์
@@ -8322,50 +8599,263 @@ function showDoctorFinanceSummary(){
 }
 
 // Export Roster Modal
-function openExportRosterModal(){
-  const modal = document.createElement('div');
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:700;display:flex;align-items:center;justify-content:center;padding:16px;';
-  const branchOpts = BRANCHES.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
-  const doctorOpts = Object.entries(DOCTORS).map(([id,doc])=>`<option value="${id}">${doc.name||id}</option>`).join('');
+function _reloadRosterNow(btn){
+  if(btn){ btn.textContent='⏳ กำลังโหลด...'; btn.disabled=true; }
+  loadRoster(function(){
+    renderRoster();
+    renderDocDefault();
+    if(btn){ btn.textContent='🔄 อัปเดต'; btn.disabled=false; }
+    showSaveIndicator('อัปเดตข้อมูลแล้ว ✓');
+  });
+}
 
-  modal.innerHTML=`<div style="background:#fff;border-radius:16px;width:100%;max-width:380px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.2);">
-    <div style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);padding:14px 18px;color:#fff;display:flex;justify-content:space-between;align-items:center;">
-      <h3 style="margin:0;font-size:15px;font-weight:800;">📤 Export ตารางเวร</h3>
-      <button onclick="this.closest('div[style*=fixed]').remove()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;">✕</button>
-    </div>
-    <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
-      <!-- รายคน -->
-      <div style="background:#f0f9ff;border-radius:12px;padding:14px;">
-        <div style="font-size:12px;font-weight:800;color:#0369a1;margin-bottom:8px;">👨‍⚕️ Export รายแพทย์ (PNG)</div>
-        <select id="exp_doctor" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-family:'Sarabun',sans-serif;font-size:13px;margin-bottom:8px;">
-          <option value="">— เลือกแพทย์ —</option>
-          ${doctorOpts}
-        </select>
-        <button onclick="const id=document.getElementById('exp_doctor').value;if(!id)return alert('เลือกแพทย์ก่อนค่ะ');exportDoctorSchedulePNG(id)" style="width:100%;padding:8px;background:#0369a1;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:13px;">
-          📥 Download PNG รายคน
-        </button>
-      </div>
-      <!-- รายสาขา -->
-      <div style="background:#f5f3ff;border-radius:12px;padding:14px;">
-        <div style="font-size:12px;font-weight:800;color:#7c3aed;margin-bottom:8px;">🏢 Export ภาพรวมสาขา (PNG)</div>
-        <select id="exp_branch" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-family:'Sarabun',sans-serif;font-size:13px;margin-bottom:8px;">
-          <option value="">— ทุกสาขา —</option>
-          ${branchOpts}
-        </select>
-        <button onclick="syncRosterToSheets(document.getElementById('exp_branch').value)" style="width:100%;padding:8px;background:#16a34a;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:13px;margin-bottom:6px;">
-          Sync → Google Sheets
-        </button>
-        <button onclick="syncAllBranchesToSheets()" style="width:100%;padding:8px;background:#0369a1;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:13px;margin-bottom:6px;">
-          Sync ทุกสาขา → Google Sheets
-        </button>
-        <button onclick="exportBranchSchedulePNG(document.getElementById('exp_branch').value)" style="width:100%;padding:8px;background:#7c3aed;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:13px;">
-          📥 Download PNG ภาพรวม
-        </button>
-      </div>
-    </div>
-  </div>`;
-  modal.onclick=e=>{if(e.target===modal)modal.remove();};
-  document.body.appendChild(modal);
+
+function openExportRosterModal(){
+  var existing = document.getElementById('_rosterExportModal');
+  if(existing) existing.remove();
+  var mo = document.createElement('div');
+  mo.id = '_rosterExportModal';
+  mo.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  var branchOpts = BRANCHES.filter(function(b){return b.id!=='b9'&&b.id!=='b10';}).map(function(b){
+    return '<option value="'+b.id+'">'+b.name+'</option>';
+  }).join('');
+  var doctorOpts = Object.entries(DOCTORS).map(function(e){
+    return '<option value="'+e[0]+'">'+(e[1].name||e[0])+'</option>';
+  }).join('');
+  mo.innerHTML = '<div style="background:#fff;border-radius:16px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.25);">'
+    +'<div style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);padding:14px 18px;color:#fff;display:flex;justify-content:space-between;align-items:center;">'
+    +'<h3 style="margin:0;font-size:15px;font-weight:800;">📤 Export ตารางเวร</h3>'
+    +'<button onclick="document.getElementById(\'_rosterExportModal\').remove()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:14px;">✕</button>'
+    +'</div>'
+    +'<div style="padding:16px;display:flex;flex-direction:column;gap:12px;">'
+    // รายคน
+    +'<div style="background:#f0f9ff;border-radius:12px;padding:14px;">'
+    +'<div style="font-size:12px;font-weight:800;color:#0369a1;margin-bottom:8px;">👨‍⚕️ Export รายแพทย์ (PNG)</div>'
+    +'<select id="exp_doctor" style="width:100%;padding:8px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;margin-bottom:8px;">'
+    +'<option value="">— เลือกแพทย์ —</option>'+doctorOpts
+    +'</select>'
+    +'<button onclick="_expDoctor(\'png\')" style="width:100%;padding:9px;background:#0369a1;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Sarabun,sans-serif;font-weight:700;font-size:13px;">📥 Download PNG รายคน</button>'
+    +'</div>'
+    // รายสาขา
+    +'<div style="background:#f5f3ff;border-radius:12px;padding:14px;">'
+    +'<div style="font-size:12px;font-weight:800;color:#7c3aed;margin-bottom:8px;">🏢 Export ภาพรวมสาขา (PNG)</div>'
+    +'<select id="exp_branch" style="width:100%;padding:8px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:Sarabun,sans-serif;font-size:13px;margin-bottom:8px;">'
+    +'<option value="">— ทุกสาขา —</option>'+branchOpts
+    +'</select>'
+    +'<button onclick="syncRosterToSheets(document.getElementById(\'exp_branch\').value)" style="width:100%;padding:8px;background:#16a34a;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Sarabun,sans-serif;font-weight:700;font-size:13px;margin-bottom:6px;">Sync → Google Sheets</button>'
+    +'<button onclick="syncAllBranchesToSheets()" style="width:100%;padding:8px;background:#0369a1;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Sarabun,sans-serif;font-weight:700;font-size:13px;margin-bottom:6px;">Sync ทุกสาขา → Google Sheets</button>'
+    +'<button onclick="_expMonthly(\'png\')" style="width:100%;padding:9px;background:#7c3aed;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Sarabun,sans-serif;font-weight:700;font-size:13px;">📥 Download PNG ภาพรวม</button>'
+    +'</div>'
+    +'</div></div>';
+  mo.onclick = function(e){ if(e.target===mo) mo.remove(); };
+  document.body.appendChild(mo);
+}
+
+function _expDoctor(fmt){
+  var docId = document.getElementById('exp_doctor').value;
+  if(!docId){ alert('กรุณาเลือกแพทย์ก่อนค่ะ'); return; }
+  var mo = document.getElementById('_rosterExportModal');
+  if(mo) mo.remove();
+  var period = _rosterActivePeriod;
+  var doc = DOCTORS[docId]||{};
+  var fname = 'doctor-'+(doc.name||docId).replace(/[^a-zA-Z0-9ก-๙]/g,'_')+'-'+(period?period.key:'schedule');
+  var root = _getOrCreateExportRoot();
+  root.style.width = '900px';
+  root.innerHTML = _buildDoctorExportHtml('doctor', {docId: docId});
+  setTimeout(function(){
+    if(fmt==='pdf') _exportAsPdf(root, fname, function(){ _removeExportRoot(); });
+    else _exportAsPng(root, fname, function(){ _removeExportRoot(); });
+  }, 300);
+}
+
+function _expMonthly(fmt){
+  var bid = document.getElementById('exp_branch') ? document.getElementById('exp_branch').value : '';
+  var mo = document.getElementById('_rosterExportModal');
+  if(mo) mo.remove();
+  var period = _rosterActivePeriod;
+  var fname = 'roster-'+(bid||'all')+'-'+(period?period.key:'schedule');
+  var root = _getOrCreateExportRoot();
+  root.style.width = '1200px';
+  root.innerHTML = _buildBranchExportHtml(bid);
+  setTimeout(function(){
+    if(fmt==='pdf') _exportAsPdf(root, fname, function(){ _removeExportRoot(); });
+    else _exportAsPng(root, fname, function(){ _removeExportRoot(); });
+  }, 300);
+}
+
+// ══ Google Apps Script Web App URL (/exec) ══
+var GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwmdUyAdW3WVKcRkjxW8PqgkbqyzLM3TZUHt-64vAppE_u7vfpBHVL5B8_FC1FaKiECPw/exec';
+
+var _MON_TH_FULL = ['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+function _buildSyncPayload(){
+  var period = _rosterActivePeriod;
+  if(!period) return null;
+  var BE_year = period.year + 543;
+  var sheetName = _MON_TH_FULL[period.month] + ' ' + String(BE_year).slice(-2);
+  var mainBranches = BRANCHES.filter(function(b){return b.id!=='b9'&&b.id!=='b10';});
+  var branchData = [];
+  mainBranches.forEach(function(branch){
+    var rows = [];
+    _rosterDays.forEach(function(day, di){
+      var slot0 = _rosterData[branch.id+'_'+di+'_0'];
+      var slot1 = _rosterData[branch.id+'_'+di+'_1'];
+      var sub0  = _docSubs.find(function(s){return s.branchId===branch.id&&s.dayIndex===di&&(s.slot||0)===0;});
+      var sub1  = _docSubs.find(function(s){return s.branchId===branch.id&&s.dayIndex===di&&(s.slot||0)===1;});
+      var getDocText = function(slot, sub){
+        if(!slot) return '—';
+        var name = sub ? (sub.subDocName||sub.docName||'—') : (slot.docName||(DOCTORS[slot.docId]||{}).name||'—');
+        var time = sub ? (sub.time||slot.time||'') : (slot.time||'');
+        return sub ? (name+' [แทน '+(sub.origDocName||'—')+'] '+time) : (name+' '+time);
+      };
+      rows.push({
+        dow: DAY_NAMES_TH[day.dow], date: day.date,
+        slot0: getDocText(slot0, sub0), slot1: getDocText(slot1, sub1),
+        isSub0: !!sub0, isSub1: !!sub1,
+      });
+    });
+    branchData.push({id: branch.id, name: branch.name, rows: rows});
+  });
+  return { action:'syncAllBranches', sheetName:sheetName, period:period.label, month:period.month, year:BE_year, branches:branchData };
+}
+
+function syncRosterToSheets(branchId){
+  var url = typeof GOOGLE_SHEET_URL !== 'undefined' ? GOOGLE_SHEET_URL : '';
+  if(!url || url.indexOf('YOUR_') === 0){
+    alert('กรุณาตั้งค่า GOOGLE_SHEET_URL ก่อนค่ะ');
+    return;
+  }
+  showSaveIndicator('กำลัง Sync...');
+  fetch(url)
+    .then(function(r){ return r.text(); })
+    .then(function(t){
+      try {
+        var res = JSON.parse(t);
+        if(res.ok) showSaveIndicator('Sync สำเร็จ ✓');
+        else showSaveIndicator('Sync error: ' + (res.error||'unknown'));
+      } catch(e){
+        showSaveIndicator('Sync สำเร็จ ✓');
+      }
+    })
+    .catch(function(e){
+      showSaveIndicator('Sync ล้มเหลว');
+      console.error('Sync error:', e);
+    });
+}
+
+function syncAllBranchesToSheets(){
+  syncRosterToSheets(null);
+}
+
+
+function _buildBranchExportHtml(filterBid){
+  var period = _rosterActivePeriod;
+  if(!period) return '<p>ไม่มีข้อมูล</p>';
+  var MON_S = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  var MON_FULL = ['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  var days = _rosterDays;
+  var mainBranches = BRANCHES.filter(function(b){return b.id!=='b9'&&b.id!=='b10';});
+  var branchList = filterBid ? mainBranches.filter(function(b){return b.id===filterBid;}) : mainBranches;
+  var branch = filterBid ? (branchList[0]||{name:'ทุกสาขา'}) : {name:'ทุกสาขา'};
+  var now = new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
+
+  // หา unique doctors เฉพาะสาขาที่เลือก สำหรับ legend
+  var docSet = {};
+  Object.entries(_rosterData).forEach(function(entry){
+    var key = entry[0], s = entry[1];
+    var keyBid = key.split('_')[0];
+    var inBranch = !filterBid || keyBid === filterBid;
+    if(inBranch && s.docId && !docSet[s.docId]){
+      docSet[s.docId] = DOCTORS[s.docId]||{name:s.docName||s.docId};
+    }
+  });
+
+  var LOGO = 'data:image/png;base64,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';
+
+  // HEADER
+  var html = '<div style="font-family:Sarabun,sans-serif;color:#0f172a;background:#fff;padding:24px 28px 0;">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">';
+  html += '<img src="'+LOGO+'" style="height:48px;object-fit:contain;" alt="Laliza Clinic">';
+  html += '<div style="text-align:right;"><div style="font-size:13px;font-weight:700;color:#64748b;">ตารางออกตรวจแพทย์</div><div style="font-size:11px;color:#94a3b8;margin-top:2px;">'+now+'</div></div>';
+  html += '</div>';
+
+  // BRANCH NAME
+  html += '<div style="margin-bottom:12px;">';
+  html += '<div style="font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">สาขา</div>';
+  html += '<div style="font-size:28px;font-weight:900;color:#0f172a;letter-spacing:-0.5px;line-height:1;">'+branch.name.replace(/^สาขา[-\s]*/,'')+'</div>';
+  html += '<div style="font-size:13px;color:#64748b;margin-top:4px;">'+period.label+'</div>';
+  html += '</div>';
+
+  // DOCTOR LEGEND
+  var docEntries = Object.entries(docSet);
+  if(docEntries.length){
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;padding:10px 0;border-top:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9;margin-bottom:16px;">';
+    docEntries.forEach(function(e){
+      var c = getDoctorColor(e[0]);
+      html += '<div style="display:inline-flex;align-items:center;gap:5px;">';
+      html += '<div style="width:10px;height:10px;border-radius:50%;background:'+c+';flex-shrink:0;"></div>';
+      html += '<span style="font-size:11px;font-weight:600;">'+(e[1].name||e[0])+'</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  // WEEKLY GRID
+  var weeks = [];
+  for(var i=0;i<days.length;i+=7) weeks.push(days.slice(i,i+7).map(function(d,j){return Object.assign({},d,{di:i+j});}));
+
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-bottom:20px;">';
+  weeks.forEach(function(week,wi){
+    var s = week[0], e2 = week[week.length-1];
+    html += '<div style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">';
+    html += '<div style="background:#1e293b;color:rgba(255,255,255,0.75);padding:7px 12px;font-size:10px;font-weight:700;letter-spacing:0.8px;">';
+    html += 'Week '+(wi+1)+' &nbsp;·&nbsp; '+s.date+' '+MON_S[s.month]+' – '+e2.date+' '+MON_S[e2.month];
+    html += '</div>';
+    week.forEach(function(day){
+      var hday = isHoliday(day.date, day.month);
+      var bg = hday?'#fff8f8':day.we?'#fafafa':'#fff';
+      var numColor = hday?'#dc2626':day.we?'#94a3b8':'#0f172a';
+      var borderLeft = hday?'border-left:3px solid #fca5a5;':'';
+      html += '<div style="padding:8px 10px;border-bottom:1px solid #f5f7fa;display:flex;align-items:flex-start;gap:10px;background:'+bg+';'+borderLeft+'">';
+      // วันที่
+      html += '<div style="width:32px;flex-shrink:0;text-align:center;">';
+      html += '<div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;">'+DAY_NAMES_TH[day.dow]+'</div>';
+      html += '<div style="font-size:18px;font-weight:800;color:'+numColor+';line-height:1;">'+day.date+'</div>';
+      html += '</div>';
+      // slots
+      html += '<div style="flex:1;display:flex;flex-direction:column;gap:3px;padding-top:2px;">';
+      var hasSlot = false;
+      branchList.forEach(function(br){
+        [0,1].forEach(function(n){
+          var slot = _rosterData[br.id+'_'+day.di+'_'+n];
+          if(!slot) return;
+          // merge substitute
+          var sub = _docSubs.find(function(s){
+            return s.branchId===br.id && s.dayIndex===day.di && (s.slot||0)===n;
+          });
+          var displayDoc = sub ? (DOCTORS[sub.subDocId]||{name:sub.subDocName}) : (DOCTORS[slot.docId]||{name:slot.docName});
+          var c = getDoctorColor(sub?sub.subDocId:slot.docId);
+          hasSlot = true;
+          html += '<div style="display:flex;align-items:center;gap:6px;">';
+          html += '<div style="width:8px;height:8px;border-radius:50%;background:'+c+';flex-shrink:0;"></div>';
+          html += '<div style="flex:1;">';
+          html += '<div style="font-size:11.5px;font-weight:700;color:#0f172a;line-height:1.3;">'+(displayDoc.name||'—')+(sub?'<span style="font-size:9px;background:#fef3c7;color:#92400e;padding:0 3px;border-radius:3px;margin-left:3px;">แทน</span>':'')+'</div>';
+          html += '<div style="font-size:10px;color:#64748b;font-family:monospace;">'+(slot.time||'')+'</div>';
+          html += '</div></div>';
+        });
+      });
+      if(!hasSlot) html += '<span style="font-size:11px;color:#e2e8f0;">—</span>';
+      html += '</div></div>';
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+
+  // FOOTER
+  html += '<div style="padding:10px 0;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:10px;color:#94a3b8;">';
+  html += '<span>GENERATED BY LALIZA CLINIC MANAGEMENT SYSTEM</span><span>CONFIDENTIAL</span>';
+  html += '</div></div>';
+  return html;
 }
 
 // ════════════════════════════════════════════
@@ -8704,11 +9194,12 @@ function _exportAsPng(root, filename, onDone){
   if(typeof html2canvas === 'undefined'){
     var s = document.createElement('script');
     s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-    s.onload = function(){ _exportAsPng(root, filename, onDone); };
+    s.onload = function(){ setTimeout(function(){ _exportAsPng(root, filename, onDone); }, 500); };
     s.onerror = function(){ alert('ไม่สามารถโหลด html2canvas ได้ กรุณาใช้ PDF แทนค่ะ'); };
     document.head.appendChild(s);
     return;
   }
+  if(!root || !root.innerHTML){ alert('ไม่มีข้อมูลสำหรับ Export ค่ะ'); if(onDone) onDone(); return; }
 
   // วาง root ให้แสดงจริงก่อน capture
   root.style.position = 'fixed';
