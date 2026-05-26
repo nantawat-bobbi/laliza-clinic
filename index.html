@@ -7129,7 +7129,7 @@ function openEditDoctor(id){
         <div style="display:flex;gap:6px;">
           ${['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316'].map(c=>
             `<div onclick="document.getElementById('doc_color_val').value='${c}';this.parentNode.querySelectorAll('div').forEach(d=>d.style.outline='none');this.style.outline='2px solid #fff';"
-              style="width:20px;height:20px;border-radius:50%;background:${c};cursor:pointer;${color===c?'outline:2px solid #fff;':''}">`
+              style="width:20px;height:20px;border-radius:50%;background:${c};cursor:pointer;${color===c?'outline:2px solid #fff;':''}"></div>`
           ).join('')}
         </div>
         <input type="hidden" id="doc_color_val" value="${color}">
@@ -7171,18 +7171,30 @@ function _saveDoctor(id, btn){
     contractEnd: document.getElementById('doc_contractEnd')?.value||'',
     phone: document.getElementById('doc_phone')?.value.trim()||'',
     fee: parseFloat(document.getElementById('doc_fee')?.value)||0,
+    feeWeekday: parseFloat(document.getElementById('doc_fee')?.value)||0,
+    feeMonthly: parseFloat(document.getElementById('doc_feeMonthly')?.value)||0,
+    welfare: parseFloat(document.getElementById('doc_welfare')?.value)||0,
+    welfareUsed: parseFloat(document.getElementById('doc_welfareUsed')?.value)||0,
+    specialty: document.getElementById('doc_specialty')?.value.trim()||'',
     bank: document.getElementById('doc_bank')?.value.trim()||'',
     bankNo: document.getElementById('doc_bankNo')?.value.trim()||'',
     username: document.getElementById('doc_username')?.value.trim()||'',
     password: document.getElementById('doc_password')?.value.trim()||'',
+    email: document.getElementById('doc_email')?.value.trim()||'',
+    nameEn: document.getElementById('doc_nameEn')?.value.trim()||'',
+    nick: document.getElementById('doc_nick')?.value.trim()||'',
+    pos: document.getElementById('doc_pos')?.value.trim()||'',
     note: document.getElementById('doc_note')?.value.trim()||'',
-    files: id ? (DOCTORS[id]?.files||[]) : [],
     updatedAt: Date.now(),
   };
 
   const docId = id || 'doc_'+Date.now();
-  fdb.collection('doctors').doc(docId).set(data).then(()=>{
-    DOCTORS[docId] = data;
+  // update เพื่อไม่ทับข้อมูลเดิม (welfare, memberId, seq ฯลฯ)
+  const saveMethod = id
+    ? fdb.collection('doctors').doc(docId).update(data)
+    : fdb.collection('doctors').doc(docId).set(Object.assign({files:[]}, data));
+  saveMethod.then(()=>{
+    DOCTORS[docId] = Object.assign({}, DOCTORS[docId]||{}, data);
     btn.closest('div[style*=fixed]').remove();
     renderDoctors();
     showSaveIndicator('✅ บันทึกข้อมูลแพทย์แล้วค่ะ');
@@ -8235,7 +8247,7 @@ function generateRosterFromDefault(){
   // หา periodKey ของ Default Schedule (เดือนก่อนหน้า = template)
   // Default = periodKey format "YYYY-MM" ของเดือนที่เป็น template
   // ตอนนี้ default อยู่ใน "2026-04"
-  const defaultKey = window._ddDefaultPeriodKey || '2026-04';
+  const defaultKey = window._ddDefaultPeriodKey || _rosterActivePeriod?.key || '2026-06';
   const targetKey  = period.key; // เดือนที่จะ generate
 
   // ตรวจว่ามีข้อมูลอยู่แล้วไหม
