@@ -2898,6 +2898,7 @@ th.today-col {
       <button class="branch-select-btn" onclick="selectLoginBranch('b6')"><span class="bdot" style="background:#a5d6a7"></span>สาขา-เดอะมอลล์งามวงศ์วาน</button>
       <button class="branch-select-btn" onclick="selectLoginBranch('b1')"><span class="bdot" style="background:#ff8a65"></span>สาขา-ซีคอนศรีนครินทร์</button>
       <button class="branch-select-btn" onclick="selectLoginBranch('b2')"><span class="bdot" style="background:#90caf9"></span>สาขา-เซ็นทรัลเวสต์เกต</button>
+      <button class="branch-select-btn" onclick="selectLoginBranch('b11')"><span class="bdot" style="background:#7986cb"></span>สาขา-เดอะมอลล์บางกะปิ</button>
       <button class="branch-select-btn" onclick="selectLoginBranch('b9')"><span class="bdot" style="background:#f48fb1"></span>ส่วนกลาง</button>
       <button class="branch-select-btn" onclick="selectLoginBranch('b10')"><span class="bdot" style="background:#ce93d8"></span>HR</button>
     </div>
@@ -4984,6 +4985,11 @@ let BRANCHES=[
     ],
     leaves:{0:{4:'X',10:'MT',15:'X',16:'X',22:'X',23:'X'},1:{1:'X',6:'X',19:'X',20:'X',27:'X'},2:{3:'X',8:'X',9:'X',15:'X',23:'X'},3:{1:'X',7:'X',8:'X',14:'X',23:'X'},4:{4:'X',9:'X',14:'X',23:'X'},5:{1:'X',7:'X',14:'X',20:'X',27:'X'},6:{4:'X',9:'X',15:'X',21:'X',22:'X'},7:{3:'X',7:'X',15:'X',23:'X'},8:{3:'X',9:'X',14:'X',21:'X'}}
   },
+  // 11. บางกะปิ
+  {
+    id:'b11',name:'สาขา-เดอะมอลล์บางกะปิ',code:'BKP',color:'#7986cb',password:'753615',staffPassword:'7536',
+    emps:[],leaves:{}
+  },
   // 9. ส่วนกลาง
   {
     id:'b9',name:'ส่วนกลาง',code:'HQ',color:'#f48fb1',password:'574930',staffPassword:'5749',
@@ -5011,7 +5017,8 @@ const CASHIER_CODES = {
   'b5': '71483',
   'b6': '38926',
   'b7': '64752',
-  'b8': '92165'
+  'b8': '92165',
+  'b11': '85780'
 };
 
 // Default branches สำหรับแสดงหน้า login ก่อน Firebase โหลด
@@ -5024,6 +5031,7 @@ const DEFAULT_BRANCHES = [
   {id:'b6',name:'สาขา-เดอะมอลล์งามวงศ์วาน',color:'#a5d6a7'},
   {id:'b1',name:'สาขา-ซีคอนศรีนครินทร์',color:'#ff8a65'},
   {id:'b2',name:'สาขา-เซ็นทรัลเวสต์เกต',color:'#90caf9'},
+  {id:'b11',name:'สาขา-เดอะมอลล์บางกะปิ',color:'#7986cb'},
   {id:'b9',name:'ส่วนกลาง',color:'#f48fb1'},
   {id:'b10',name:'HR',color:'#ce93d8'},
 ];
@@ -5120,7 +5128,7 @@ function doLogin(){
       {id:'b7',p:'847291',s:'8472'},{id:'b8',p:'362058',s:'3620'},
       {id:'b3',p:'519374',s:'5193'},{id:'b4',p:'728163',s:'7281'},
       {id:'b5',p:'945612',s:'9456'},{id:'b6',p:'183749',s:'1837'},
-      {id:'b1',p:'637482',s:'6374'},{id:'b2',p:'291856',s:'2918'},
+      {id:'b1',p:'637482',s:'6374'},{id:'b2',p:'291856',s:'2918'},{id:'b11',p:'753615',s:'7536'},
       {id:'b9',p:'574930',s:'5749'},{id:'b10',p:'463817',s:'4638'},
     ].find(x=>x.id===selectedLoginBranch);
     const mgPw = (b&&b.password)||(defaultB&&defaultB.p)||'';
@@ -5216,7 +5224,7 @@ function _showOpsNavForStaff(){
 // ════════════════════════════════════════════════════════
 const BRANCH_SLUG_MAP_PAY = {
   b7:'rama9', b8:'pinklao', b3:'bangkae', b4:'rangsit',
-  b5:'promenade', b6:'ngamwongwan', b1:'srinakarin', b2:'westgate'
+  b5:'promenade', b6:'ngamwongwan', b1:'srinakarin', b2:'westgate', b11:'bangkapi'
 };
 
 async function renderDocPay(){
@@ -8099,10 +8107,15 @@ function saveToFirebase(callback){
     .catch(e=>{ console.error(e); showSaveIndicator('❌ บันทึกไม่สำเร็จ'); });
 }
 
+// สาขาที่เพิ่มใหม่ภายหลัง — ใช้เติมเข้าไปถ้า Firebase ยังไม่มี
+const NEW_SEED_BRANCHES = [
+  {id:'b11',name:'สาขา-เดอะมอลล์บางกะปิ',code:'BKP',color:'#7986cb',password:'753615',staffPassword:'7536',emps:[],leaves:{}},
+];
+
 // โหลดข้อมูลจาก Firebase ครั้งเดียวตอน login
 function parseFirebaseBranches(data){
   if(!data) return null;
-  const branchOrder = ['b7','b8','b3','b4','b5','b6','b1','b2','b9','b10'];
+  const branchOrder = ['b7','b8','b3','b4','b5','b6','b1','b2','b11','b9','b10'];
   let result = [];
   if(typeof data === 'object' && !Array.isArray(data)){
     branchOrder.forEach(id=>{ if(data[id]) result.push(data[id]); });
@@ -8117,6 +8130,16 @@ function parseFirebaseBranches(data){
       if(!b.leaves) b.leaves = {};
     }
   });
+  // เติมสาขาใหม่ที่ยังไม่มีใน Firebase (เช่น b11 บางกะปิ) — จะถูกบันทึกขึ้น Firebase ตอน save ครั้งถัดไป
+  if(result.length > 0){
+    NEW_SEED_BRANCHES.forEach(nb=>{
+      if(!result.some(x=>x&&x.id===nb.id)){
+        const copy = JSON.parse(JSON.stringify(nb));
+        const idx = result.findIndex(x=>x&&(x.id==='b9'||x.id==='b10'));
+        if(idx>=0) result.splice(idx,0,copy); else result.push(copy);
+      }
+    });
+  }
   return result.length > 0 ? result : null;
 }
 
@@ -11773,9 +11796,9 @@ async function syncAllRosterBranchesToSheets(options){
 const BRANCHES_PERF = {
   srinakarin:'ศรีนครินทร์', westgate:'เวสต์เกต', bangkae:'บางแค',
   rangsit:'รังสิต', promanat:'พรอมานาด', ngamwongwan:'งามวงศ์วาน',
-  rama9:'พระราม 9', pinklao:'ปิ่นเกล้า'
+  rama9:'พระราม 9', pinklao:'ปิ่นเกล้า', bangkapi:'บางกะปิ'
 };
-const BRANCH_BKEYS = {b1:'srinakarin',b2:'westgate',b3:'bangkae',b4:'rangsit',b5:'promanat',b6:'ngamwongwan',b7:'rama9',b8:'pinklao'};
+const BRANCH_BKEYS = {b1:'srinakarin',b2:'westgate',b3:'bangkae',b4:'rangsit',b5:'promanat',b6:'ngamwongwan',b7:'rama9',b8:'pinklao',b11:'bangkapi'};
 
 let _perfView = 'all';
 let _perfMonth = '';
@@ -12278,7 +12301,7 @@ async function importPerfExcel(file){
     const BRANCH_SHEET_MAP = {
       'ศรีนครินทร์':'srinakarin','เวสต์เกต':'westgate','บางแค':'bangkae',
       'รังสิต':'rangsit','พรอมานาด':'promanat','งามวงศ์วาน':'ngamwongwan',
-      'พระราม 9':'rama9','ปิ่นเกล้า':'pinklao'
+      'พระราม 9':'rama9','ปิ่นเกล้า':'pinklao','บางกะปิ':'bangkapi'
     };
 
     let imported = 0, errors = [];
@@ -13337,7 +13360,7 @@ function exportDoctorFeePDF(){
 // ════════════════════════════════════════════
 const BRANCH_SLUG_MAP = {
   b7: 'rama9', b8: 'pinklao', b3: 'bangkae', b4: 'rangsit',
-  b5: 'promenade', b6: 'ngamwongwan', b1: 'srinakarin', b2: 'westgate'
+  b5: 'promenade', b6: 'ngamwongwan', b1: 'srinakarin', b2: 'westgate', b11: 'bangkapi'
 };
 
 // ── Doctor Finance: โหลดข้อมูลจาก ops_docfin_mth ──
@@ -13561,7 +13584,7 @@ function escapeHtml(v){
 }
 
 function getBranchNameFromSlug(slug){
-  const branchMap = { rama9:'พระราม 9', pinklao:'ปิ่นเกล้า', bangkae:'บางแค', rangsit:'รังสิต', promenade:'พรอมานาด', ngamwongwan:'งามวงศ์วาน', srinakarin:'ศรีนครินทร์', westgate:'เวสต์เกต' };
+  const branchMap = { rama9:'พระราม 9', pinklao:'ปิ่นเกล้า', bangkae:'บางแค', rangsit:'รังสิต', promenade:'พรอมานาด', ngamwongwan:'งามวงศ์วาน', srinakarin:'ศรีนครินทร์', westgate:'เวสต์เกต', bangkapi:'บางกะปิ' };
   return branchMap[slug] || slug || '—';
 }
 
