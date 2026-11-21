@@ -13939,5 +13939,23 @@ async function renderDocDash(){
 }
 
 </script>
+<script>
+// ── กันหน้าต่าง (popup) ทุกตัวปิดเอง เมื่อเผลอกดพื้นที่ว่างรอบ ๆ ──
+// หน้าต่างจะปิดได้เฉพาะเมื่อกดปุ่มในหน้าต่างเท่านั้น เช่น ตกลง / บันทึก / ยกเลิก / ปิด / ✕
+(function(){
+  function isBackdrop(el){
+    if(!(el instanceof HTMLElement)) return false;
+    if(el.id==='loginScreen') return false;
+    if(!el.firstElementChild) return false;
+    const cs = getComputedStyle(el);
+    if(cs.position!=='fixed') return false;
+    const r = el.getBoundingClientRect();
+    return r.width >= window.innerWidth*0.9 && r.height >= window.innerHeight*0.9;
+  }
+  document.addEventListener('click', function(e){
+    if(isBackdrop(e.target)) e.stopPropagation();
+  }, true);
+})();
+</script>
 </body>
 </html>
